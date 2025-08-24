@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>도면 작성법 연습</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="indexStyles.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -162,7 +162,7 @@
     </div>
   </div>
 
-  <!-- 학습 결과 분석 페이지 (통일된 레이아웃) -->
+  <!-- 학습 결과 분석 페이지 -->
   <div id="resultsPage" class="page">
     <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
       <h1>📊 학습 결과 분석</h1>
@@ -174,7 +174,7 @@
         <span id="resultsDifficultyBadge">-</span>
       </div>
 
-      <!-- 기본 통계 (4개 한 줄 배치) -->
+      <!-- 기본 통계 -->
       <div class="learning-stats">
         <h3>📈 학습 통계</h3>
         <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px;">
@@ -201,7 +201,7 @@
         </div>
       </div>
 
-      <!-- 도면별 상세 분석 (3개 나란히, 여유롭게) -->
+      <!-- 도면별 상세 분석 -->
       <div class="learning-stats">
         <h3>📐 도면별 성과 분석</h3>
         <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 20px;">
@@ -231,11 +231,7 @@
         </div>
       </div>
 
-      <!-- 페이지 구분을 위한 마커 (보이지 않음) -->
-      <div style="page-break-before: always; margin: 30px 0;">
-      </div>
-
-      <!-- AI 학습 분석 (기존 패턴 분석 대체) -->
+      <!-- AI 학습 분석 -->
       <div class="learning-stats">
         <h3>🤖 AI 선생님의 학습 분석</h3>
         <div class="pattern-analysis">
@@ -250,7 +246,6 @@
             font-size: 0.9rem;
             line-height: 1.6;
             white-space: pre-wrap;
-            position: relative;
           ">
             <div class="loading-content" style="
               display: flex;
