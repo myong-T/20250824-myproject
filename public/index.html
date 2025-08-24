@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>도면 작성법 연습</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="indexStyles.css" />
+</head>
+<body>
+
+  <!-- 시작 페이지 -->
+  <div id="startPage" class="page active">
+    <h1>도면 작성법 연습</h1>
+    <button class="button" id="startBtn">시작하기</button>
+  </div>
+
+  <!-- 난이도 선택 페이지 -->
+  <div id="difficultyPage" class="page">
+    <h1>도면 난이도를 선택하세요</h1>
+    <div class="difficulty-options">
+      <button class="button" data-difficulty="easy">하</button>
+      <button class="button" data-difficulty="medium">중</button>
+      <button class="button" data-difficulty="hard">상</button>
+    </div>
+  </div>
+
+  <!-- 도면 작성 메인 페이지 -->
+  <div id="mainPage" class="page">
+    <h1>도면 그리기 화면</h1>
+    <p>선택된 난이도: <span id="difficultyBadge">-</span></p>
+
+    <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
+      <div style="margin-top: -10px;">
+        <h3>입체도형</h3>
+        <div id="viewer"></div>
+        <!-- 등각투상도 추가 (난이도별로 다른 이미지) -->
+        <div style="margin-top: 15px;">
+          <h4>등각투상도</h4>
+          <img id="isometricImage" src="figure1.png" alt="등각투상도" style="
+            width: 335px;
+            height: auto;
+            border: 1px solid #ccc;
+            background-color: white;
+            display: block;
+            margin: 0 auto;
+          ">
+        </div>
+      </div>
+
+      <div>
+        <div style="
+          display: grid;
+          grid-template-columns: auto auto auto;
+          grid-template-rows: auto auto;
+          grid-template-areas:
+            'top submit feedback'
+            'front side feedback';
+          gap: 20px;
+          align-items: start;
+        ">
+
+          <!-- 평면도 -->
+          <div class="canvas-box" style="grid-area: top;">
+            <h4>평면도</h4>
+            <canvas id="topCanvas" width="300" height="300"></canvas>
+            <div class="tools">
+              <button onclick="reset('top')">초기화</button>
+              <button onclick="undo('top')">되돌리기</button>
+            </div>
+          </div>
+
+          <!-- 정면도 -->
+          <div class="canvas-box" style="grid-area: front;">
+            <h4>정면도</h4>
+            <canvas id="frontCanvas" width="300" height="300"></canvas>
+            <div class="tools">
+              <button onclick="reset('front')">초기화</button>
+              <button onclick="undo('front')">되돌리기</button>
+            </div>
+          </div>
+
+          <!-- 우측면도 -->
+          <div class="canvas-box" style="grid-area: side;">
+            <h4>우측면도</h4>
+            <canvas id="sideCanvas" width="300" height="300"></canvas>
+            <div class="tools">
+              <button onclick="reset('side')">초기화</button>
+              <button onclick="undo('side')">되돌리기</button>
+            </div>
+          </div>
+
+          <!-- 제출 버튼 및 참고사항 -->
+          <div style="grid-area: submit; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px;">
+            <div style="display: flex; gap: 10px;">
+              <button class="button" onclick="submitDrawings()">제출하기</button>
+              <button class="button" onclick="resetAll()" style="background-color: #FF6B6B;">모두 초기화</button>
+            </div>
+            
+            <!-- 참고사항 추가 -->
+            <div class="reference-box">
+              <h4><span class="icon">💡</span>도면 작성 참고사항</h4>
+              <ul>
+                <li><strong>선 그리기:</strong> 좌클릭 2번으로 선분을 하나로 그리기</li>
+                <li><strong>선 스타일 변경:</strong> 그린 선에 우클릭하면 실선↔점선 변경</li>
+                <li><strong>숨은선 표현:</strong> 안보이는 선은 점선으로 그려야 함</li>
+                <li><strong>정확성:</strong> 모든 선이 정답과 일치해야 100% 인정</li>
+                <li><strong>불필요한 선:</strong> 추가 선분이 있으면 감점</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 피드백 영역 (기본 피드백 + AI 피드백을 세로로 배치) -->
+          <div style="grid-area: feedback;">
+            <!-- 기본 피드백 -->
+            <div>
+              <h3 style="text-align: left;">정답 여부 확인</h3>
+              <p class="feedback">
+                평면도: <span id="topFeedback">❓</span>
+                정면도: <span id="frontFeedback">❓</span>
+                우측면도: <span id="sideFeedback">❓</span>
+              </p>
+              <div class="feedback-box">
+                <strong>피드백 내용:</strong>
+                <ul>
+                  <li><strong>평면도</strong>: <span id="topComment">-</span></li>
+                  <li><strong>정면도</strong>: <span id="frontComment">-</span></li>
+                  <li><strong>우측면도</strong>: <span id="sideComment">-</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- AI 피드백 (바로 아래 배치) -->
+            <div style="margin-top: 15px;">
+              <h3 style="text-align: left;">👨‍🏫 AI 선생님께 조언 받기</h3>
+              <div style="width: 352px;">
+                <div style="margin-bottom: 15px;">
+                  <button class="ai-button" id="getAiFeedbackBtn" onclick="getAIFeedback()">
+                    <span class="icon">🤖</span>
+                    AI 선생님께 조언 받기
+                  </button>
+                </div>
+                
+                <div class="ai-feedback-area" id="aiFeedbackArea">
+                  <p>AI 선생님께 조언을 받으려면 위의 버튼을 클릭해주세요.</p>
+                  <div class="ai-tips">
+                    <p>💡 <strong>AI 선생님 기능:</strong> 여러분의 도면을 분석해서 더 잘할 수 있는 방법을 알려드려요.</p>
+                  </div>
+                </div>
+                
+                <!-- 학습 마무리 버튼 추가 -->
+                <div style="margin-top: 15px; text-align: center;">
+                  <button class="button" id="finishLearningBtn" onclick="finishLearning()" style="background-color: #FF6B6B; font-size: 0.9rem; padding: 10px 20px;">
+                    📊 학습 마무리
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학습 결과 분석 페이지 (통일된 레이아웃) -->
+  <div id="resultsPage" class="page">
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+      <h1>📊 학습 결과 분석</h1>
+      <p>수고하셨습니다! 이번 학습 세션의 결과를 분석해드릴게요.</p>
+      
+      <!-- 도전한 난이도 표시 -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 1.1rem; color: #495057; margin-right: 10px;">도전한 난이도:</span>
+        <span id="resultsDifficultyBadge">-</span>
+      </div>
+
+      <!-- 기본 통계 (4개 한 줄 배치) -->
+      <div class="learning-stats">
+        <h3>📈 학습 통계</h3>
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px;">
+          <div class="stat-card">
+            <h4>⏱️ 총 학습 시간</h4>
+            <div class="stat-value" id="totalTime">-</div>
+            <small>시작부터 마무리까지</small>
+          </div>
+          <div class="stat-card">
+            <h4>🔄 총 시도 횟수</h4>
+            <div class="stat-value" id="totalAttempts">-</div>
+            <small>제출 버튼 클릭 횟수</small>
+          </div>
+          <div class="stat-card">
+            <h4>🎯 최고 점수</h4>
+            <div class="stat-value" id="bestScore">-</div>
+            <small>가장 좋았던 결과</small>
+          </div>
+          <div class="stat-card">
+            <h4>📝 최종 점수</h4>
+            <div class="stat-value" id="finalScore">-</div>
+            <small>마지막 제출 결과</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 도면별 상세 분석 (3개 나란히, 여유롭게) -->
+      <div class="learning-stats">
+        <h3>📐 도면별 성과 분석</h3>
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 20px;">
+          <div class="stat-card expanded-card">
+            <h4>🔺 평면도</h4>
+            <div class="stat-value" id="topStats">-</div>
+            <small>최고 달성 점수</small>
+          </div>
+          <div class="stat-card expanded-card">
+            <h4>⬜ 정면도</h4>
+            <div class="stat-value" id="frontStats">-</div>
+            <small>최고 달성 점수</small>
+          </div>
+          <div class="stat-card expanded-card">
+            <h4>▶️ 우측면도</h4>
+            <div class="stat-value" id="sideStats">-</div>
+            <small>최고 달성 점수</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 학습 배지 -->
+      <div class="learning-stats">
+        <h3>🏆 학습 배지</h3>
+        <div id="achievementArea">
+          <p>이번 학습에서의 성취를 분석하고 있습니다...</p>
+        </div>
+      </div>
+
+      <!-- 페이지 구분을 위한 마커 (보이지 않음) -->
+      <div style="page-break-before: always; margin: 30px 0;">
+      </div>
+
+      <!-- AI 학습 분석 (기존 패턴 분석 대체) -->
+      <div class="learning-stats">
+        <h3>🤖 AI 선생님의 학습 분석</h3>
+        <div class="pattern-analysis">
+          <div id="aiPatternAnalysis" class="ai-pattern-analysis" style="
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 10px;
+            min-height: 150px;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            position: relative;
+          ">
+            <div class="loading-content" style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 120px;
+              color: #6c757d;
+            ">
+              <div class="loading-spinner" style="
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #6C63FF;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-right: 10px;
+              "></div>
+              AI 선생님이 학습 패턴을 분석하고 있습니다...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 버튼 영역 -->
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="button" onclick="downloadLearningReport()" style="background-color: #6c63ff;">
+          📄 학습 결과 다운로드
+        </button>
+        <button class="button" onclick="goToStart()" style="background-color: #28a745;">
+          🏠 처음으로
+        </button>
+        <button class="button" onclick="closeApp()" style="background-color: #dc3545;">
+          ❌ 끝내기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
