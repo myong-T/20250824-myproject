@@ -304,12 +304,6 @@ class DrawingApp {
         throw new Error('학습 결과 컨테이너를 찾을 수 없습니다.');
       }
 
-      // 버튼 영역 임시 숨기기
-      const buttonArea = contentContainer.querySelector('div[style*="text-align: center; margin-top: 30px"]');
-      if (buttonArea) {
-        buttonArea.style.display = 'none';
-      }
-
       // 1페이지와 2페이지 요소 분리 (페이지 구분 마커 기준)
       const page1Elements = [];
       const page2Elements = [];
@@ -318,10 +312,18 @@ class DrawingApp {
       const allChildren = Array.from(contentContainer.children);
       
       allChildren.forEach((child) => {
-        // 페이지 구분 마커 확인
+        // 버튼 영역은 PDF에서 제외
+        if (child.style.textAlign === 'center' && 
+            child.style.marginTop === '30px' && 
+            child.querySelector('button')) {
+          return; // 버튼 영역은 건너뛰기
+        }
+        
+        // 페이지 구분 마커 확인 - 학습 배지 섹션 이후로 변경
         if (child.style.pageBreakBefore === 'always' || 
-            child.textContent.includes('AI 학습 분석') ||
-            child.querySelector('h3') && child.querySelector('h3').textContent.includes('AI 학습 분석')) {
+            child.innerHTML?.includes('PDF 페이지 구분 마커') ||
+            child.textContent.includes('🤖 AI 선생님의 학습 분석') ||
+            child.querySelector('h3') && child.querySelector('h3').textContent.includes('🤖 AI 선생님의 학습 분석')) {
           isPage2 = true;
         }
         
@@ -374,9 +376,9 @@ class DrawingApp {
       console.error('PDF 다운로드 중 오류:', error);
       alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
-      // 버튼 영역 다시 표시
-      const buttonArea = document.querySelector('#resultsPage div[style*="display: none"]');
-      if (buttonArea) {
+      // 버튼 영역 다시 표시 (PDF 생성 완료 후)
+      const buttonArea = document.querySelector('#resultsPage div[style*="text-align: center"]');
+      if (buttonArea && buttonArea.style.display === 'none') {
         buttonArea.style.display = 'block';
       }
 

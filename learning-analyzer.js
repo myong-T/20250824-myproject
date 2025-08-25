@@ -271,6 +271,7 @@ ${detailedPatterns}
       <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
         ${badges.map(badge => `<span style="background-color: #6C63FF; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">${badge}</span>`).join('')}
       </div>
+      <!-- PDF 페이지 구분 마커: 이 지점에서 1페이지 종료, 2페이지 시작 -->
     `;
   }
 
