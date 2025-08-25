@@ -1,4 +1,4 @@
-// learning-analyzer.js - 학습 결과 분석 시스템 (Netlify용)
+// learning-analyzer.js - 학습 결과 분석 시스템 (Netlify용 - 수정됨)
 
 export class LearningAnalyzer {
   constructor() {
@@ -27,7 +27,7 @@ export class LearningAnalyzer {
     }
   }
 
-  // AI 선생님 자동 분석 실행 (Netlify Functions 사용)
+  // AI 선생님 자동 분석 실행 (Netlify Functions 사용 - 경로 수정)
   async runAutoTeacherAnalysis(session) {
     const analysisArea = document.getElementById('aiPatternAnalysis');
     
@@ -55,7 +55,7 @@ export class LearningAnalyzer {
           animation: spin 1s linear infinite;
           margin-right: 10px;
         "></div>
-        AI 선생님이 학습 패턴을 분석하고 있습니다...
+        AI가 학습 패턴을 분석하고 있습니다...
       </div>
     `;
 
@@ -290,7 +290,7 @@ ${detailedPatterns}
       Math.round((session.endTime - session.startTime) / (1000 * 60)) : 0;
     
     const scores = session.attempts.map(attempt => 
-      attempt.top.score + attempt.front.score + attempt.side.score
+      attempt.scores.top + attempt.scores.front + attempt.scores.side
     );
     
     const bestScore = Math.max(...scores, 0);
@@ -318,7 +318,7 @@ ${detailedPatterns}
       };
     }
 
-    const viewScores = session.attempts.map(attempt => attempt[viewKey].score);
+    const viewScores = session.attempts.map(attempt => attempt.scores[viewKey]);
     const bestScore = Math.max(...viewScores, 0);
     const attemptCount = viewScores.length;
     

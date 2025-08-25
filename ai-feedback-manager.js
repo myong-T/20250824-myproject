@@ -1,4 +1,4 @@
-// ai-feedback-manager.js - AI 피드백 관리 시스템 (Netlify용)
+// ai-feedback-manager.js - AI 피드백 관리 시스템 (Netlify용 - 수정됨)
 
 import { CONFIG } from './constants.js';
 
@@ -108,9 +108,9 @@ export class AIFeedbackManager {
 
   // 전체 완성도 평가
   assessOverallCompletion(lastValidationResults) {
-    const totalScore = lastValidationResults.top.score + 
-                      lastValidationResults.front.score + 
-                      lastValidationResults.side.score;
+    const totalScore = lastValidationResults.top.accuracy.score + 
+                      lastValidationResults.front.accuracy.score + 
+                      lastValidationResults.side.accuracy.score;
     const averageScore = totalScore / 3;
     
     return {
@@ -120,10 +120,10 @@ export class AIFeedbackManager {
       averageScore: Math.round(averageScore),
       totalScore: totalScore,
       perfectViews: Object.keys(lastValidationResults).filter(
-        view => lastValidationResults[view].score === 100
+        view => lastValidationResults[view].accuracy.score === 100
       ),
       weakViews: Object.keys(lastValidationResults).filter(
-        view => lastValidationResults[view].score < 70
+        view => lastValidationResults[view].accuracy.score < 70
       )
     };
   }
@@ -183,14 +183,14 @@ export class AIFeedbackManager {
       const result = lastValidationResults[viewKey];
       
       detailedAnalysis[viewKey] = {
-        score: result.score,
-        missingCount: result.accuracy?.detailedAnalysis?.missingCount || 0,
-        extraCount: result.accuracy?.detailedAnalysis?.extraCount || 0,
-        styleErrorCount: result.accuracy?.detailedAnalysis?.styleErrors ? 
+        score: result.accuracy.score,
+        missingCount: result.accuracy.detailedAnalysis?.missingCount || 0,
+        extraCount: result.accuracy.detailedAnalysis?.extraCount || 0,
+        styleErrorCount: result.accuracy.detailedAnalysis?.styleErrors ? 
           result.accuracy.detailedAnalysis.styleErrors.length : 0,
-        completionRate: result.accuracy?.detailedAnalysis?.completionRate,
-        precisionRate: result.accuracy?.detailedAnalysis?.precisionRate,
-        styleErrors: result.accuracy?.detailedAnalysis?.styleErrors || []
+        completionRate: result.accuracy.detailedAnalysis?.completionRate,
+        precisionRate: result.accuracy.detailedAnalysis?.precisionRate,
+        styleErrors: result.accuracy.detailedAnalysis?.styleErrors || []
       };
     });
 
