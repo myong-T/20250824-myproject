@@ -319,14 +319,18 @@ class DrawingApp {
           return; // 버튼 영역은 건너뛰기
         }
         
-        // 페이지 구분 마커 확인 - 더 정확한 감지
-        if (child.getAttribute && child.getAttribute('data-page-break') === 'true' ||
-            child.innerHTML?.includes('PDF 페이지 구분 마커') ||
+        // 페이지 구분 마커 확인
+        if (child.getAttribute && child.getAttribute('data-page-break') === 'true') {
+          isPage2 = true;
+          return; // 마커 자체는 PDF에 포함하지 않음
+        }
+        
+        // AI 분석 섹션 확인으로 2페이지 시작점 체크 (백업)
+        if (child.innerHTML?.includes('PDF 페이지 구분 마커') ||
             child.textContent.includes('🤖 AI 선생님의 학습 분석') ||
             (child.querySelector && child.querySelector('h3') && 
              child.querySelector('h3').textContent.includes('🤖 AI 선생님의 학습 분석'))) {
           isPage2 = true;
-          return; // 마커 자체는 PDF에 포함하지 않음
         }
         
         if (isPage2) {
