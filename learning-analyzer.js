@@ -271,8 +271,19 @@ ${detailedPatterns}
       <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
         ${badges.map(badge => `<span style="background-color: #6C63FF; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">${badge}</span>`).join('')}
       </div>
-      <!-- PDF 페이지 구분 마커: 이 지점에서 1페이지 종료, 2페이지 시작 -->
     `;
+    
+    // 학습 배지 섹션 다음에 페이지 구분 마커를 별도 요소로 추가
+    const pageBreakMarker = document.createElement('div');
+    pageBreakMarker.innerHTML = '<!-- PDF 페이지 구분 마커: 학습 배지까지 1페이지, 이후 2페이지 -->';
+    pageBreakMarker.style.display = 'none'; // 화면에는 보이지 않게
+    pageBreakMarker.setAttribute('data-page-break', 'true');
+    
+    // 학습 배지 섹션 바로 다음에 마커 삽입
+    const achievementSection = achievementArea.closest('.learning-stats');
+    if (achievementSection && achievementSection.parentNode) {
+      achievementSection.parentNode.insertBefore(pageBreakMarker, achievementSection.nextSibling);
+    }
   }
 
   // 학습 요약 데이터 생성
