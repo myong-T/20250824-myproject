@@ -1,4 +1,6 @@
-// learning-analyzer.js - 학습 결과 분석 시스템 (Netlify용 - 수정됨)
+// ========================================
+// 📄 learning-analyzer.js (수정된 버전)
+// ========================================
 
 export class LearningAnalyzer {
   constructor() {
@@ -16,14 +18,49 @@ export class LearningAnalyzer {
       // 도면 이미지 표시
       this.displayDrawingImages(session);
       
-      // 성취도 표시
-      this.displayAchievements(session);
+      // 🆕 기존 성취도 표시 대신 새로운 배지 컬렉션 표시
+      await this.displayBadgeCollection(session);
       
       // AI 선생님 분석 실행 (Netlify Functions 사용)
       await this.runAutoTeacherAnalysis(session);
       
     } catch (error) {
       console.error('학습 결과 표시 중 오류:', error);
+    }
+  }
+
+  // 🆕 배지 컬렉션 표시 (기존 displayAchievements 대체)
+  async displayBadgeCollection(session) {
+    const achievementArea = document.getElementById('achievementArea');
+    
+    if (!achievementArea) {
+      console.warn('성취도 표시 영역을 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      // BadgeSystem을 동적으로 import
+      const { BadgeSystem } = await import('./badge-system.js');
+      const badgeSystem = new BadgeSystem();
+      
+      // CSS 스타일 추가
+      badgeSystem.addBadgeStyles();
+      
+      // 배지 컬렉션 HTML 생성 및 표시
+      achievementArea.innerHTML = badgeSystem.generateBadgeCollectionHTML(session);
+      
+      console.log('배지 컬렉션 표시 완료');
+    } catch (error) {
+      console.error('배지 컬렉션 표시 중 오류:', error);
+      
+      // 오류 발생 시 기본 메시지 표시
+      achievementArea.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #666;">
+          <h3>🏆 학습 배지</h3>
+          <p>배지 시스템을 불러오는 중 오류가 발생했습니다.</p>
+          <p>새로고침 후 다시 시도해주세요.</p>
+        </div>
+      `;
     }
   }
 
@@ -234,56 +271,6 @@ ${detailedPatterns}
   displayDrawingImages(session) {
     // 캔버스에서 이미지 생성하는 로직
     // (현재는 기본 구현만 제공)
-  }
-
-  // 성취도 배지 표시
-  displayAchievements(session) {
-    const achievementArea = document.getElementById('achievementArea');
-    const summary = this.getLearningSummary(session);
-    
-    let badges = [];
-    
-    // 완벽주의자 배지
-    if (summary.bestScore === 300) {
-      badges.push('🏆 완벽주의자');
-    }
-    
-    // 끈기 배지
-    if (summary.totalAttempts >= 10) {
-      badges.push('💪 끈기왕');
-    }
-    
-    // 빠른 학습자 배지
-    if (summary.totalTime <= 10 && summary.bestScore >= 240) {
-      badges.push('⚡ 빠른 학습자');
-    }
-    
-    // 향상자 배지
-    if (summary.improvement >= 100) {
-      badges.push('📈 향상자');
-    }
-
-    if (badges.length === 0) {
-      badges.push('🌟 도전자');
-    }
-
-    achievementArea.innerHTML = `
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-        ${badges.map(badge => `<span style="background-color: #6C63FF; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">${badge}</span>`).join('')}
-      </div>
-    `;
-    
-    // 학습 배지 섹션 다음에 페이지 구분 마커를 별도 요소로 추가
-    const pageBreakMarker = document.createElement('div');
-    pageBreakMarker.innerHTML = '<!-- PDF 페이지 구분 마커: 학습 배지까지 1페이지, 이후 2페이지 -->';
-    pageBreakMarker.style.display = 'none'; // 화면에는 보이지 않게
-    pageBreakMarker.setAttribute('data-page-break', 'true');
-    
-    // 학습 배지 섹션 바로 다음에 마커 삽입
-    const achievementSection = achievementArea.closest('.learning-stats');
-    if (achievementSection && achievementSection.parentNode) {
-      achievementSection.parentNode.insertBefore(pageBreakMarker, achievementSection.nextSibling);
-    }
   }
 
   // 학습 요약 데이터 생성

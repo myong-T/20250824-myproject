@@ -1,11 +1,15 @@
-// app.js - 메인 앱 로직 (화면과 PDF 통일된 레이아웃)
+// ========================================
+// 📄 app.js (수정된 버전)
+// ========================================
 
+// 기존 import에 BadgeSystem 추가
 import { DIFFICULTY_LABELS, ISOMETRIC_IMAGES } from './constants.js';
 import { CanvasManager } from './canvas-manager.js';
 import { Viewer3D } from './viewer-3d.js';
 import { AnswerChecker } from './answer-checker.js';
 import { LearningAnalyzer } from './learning-analyzer.js';
 import { AIFeedbackManager } from './ai-feedback-manager.js';
+import { BadgeSystem } from './badge-system.js'; // 🆕 새로 추가
 
 class DrawingApp {
   constructor() {
@@ -15,6 +19,7 @@ class DrawingApp {
     this.answerChecker = new AnswerChecker();
     this.learningAnalyzer = new LearningAnalyzer();
     this.aiFeedbackManager = new AIFeedbackManager();
+    this.badgeSystem = new BadgeSystem(); // 🆕 새로 추가
     
     // 마지막 검증 결과 저장 (AI 피드백에서 사용)
     this.lastValidationResults = null;
@@ -117,6 +122,41 @@ class DrawingApp {
     
     // 캔버스 초기화
     this.canvasManager.initCanvases(difficulty);
+    
+    // 🆕 미니 배지 미리보기 표시
+    this.showMiniBadgePreview();
+  }
+
+  // 🆕 미니 배지 미리보기 표시
+  showMiniBadgePreview() {
+    // CSS 스타일 추가
+    this.badgeSystem.addBadgeStyles();
+    
+    // 미니 배지 HTML 생성
+    const miniBadgeHTML = this.badgeSystem.generateMiniBadgeHTML(this.learningSession);
+    
+    // AI 피드백 섹션 찾기
+    const aiFeedbackSection = document.querySelector('div[style*="margin-top: 15px;"] h3');
+    
+    if (aiFeedbackSection && aiFeedbackSection.textContent.includes('AI 선생님께 조언 받기')) {
+      // 기존 배지 미리보기 제거 (있다면)
+      const existingPreview = document.getElementById('badgePreview');
+      if (existingPreview) {
+        existingPreview.remove();
+      }
+      
+      // 새 배지 미리보기 삽입
+      aiFeedbackSection.parentNode.insertAdjacentHTML('beforebegin', miniBadgeHTML);
+    }
+  }
+
+  // 🆕 미니 배지 실시간 업데이트
+  updateMiniBadgePreview() {
+    const existingPreview = document.getElementById('badgePreview');
+    if (existingPreview && this.learningSession) {
+      const updatedHTML = this.badgeSystem.generateMiniBadgeHTML(this.learningSession);
+      existingPreview.outerHTML = updatedHTML;
+    }
   }
 
   // 학습 세션 시작
@@ -206,6 +246,9 @@ class DrawingApp {
         comment.textContent = result.message;
       }
     });
+
+    // 🆕 미니 배지 업데이트
+    this.updateMiniBadgePreview();
   }
 
   // 학습 시도 기록
@@ -304,6 +347,12 @@ class DrawingApp {
         throw new Error('학습 결과 컨테이너를 찾을 수 없습니다.');
       }
 
+      // 버튼 영역 임시 숨기기
+      const buttonArea = contentContainer.querySelector('div[style*="text-align: center; margin-top: 30px"]');
+      if (buttonArea) {
+        buttonArea.style.display = 'none';
+      }
+
       // 1페이지와 2페이지 요소 분리 (페이지 구분 마커 기준)
       const page1Elements = [];
       const page2Elements = [];
@@ -312,24 +361,10 @@ class DrawingApp {
       const allChildren = Array.from(contentContainer.children);
       
       allChildren.forEach((child) => {
-        // 버튼 영역은 PDF에서 제외
-        if (child.style.textAlign === 'center' && 
-            child.style.marginTop === '30px' && 
-            child.querySelector('button')) {
-          return; // 버튼 영역은 건너뛰기
-        }
-        
         // 페이지 구분 마커 확인
-        if (child.getAttribute && child.getAttribute('data-page-break') === 'true') {
-          isPage2 = true;
-          return; // 마커 자체는 PDF에 포함하지 않음
-        }
-        
-        // AI 분석 섹션 확인으로 2페이지 시작점 체크 (백업)
-        if (child.innerHTML?.includes('PDF 페이지 구분 마커') ||
-            child.textContent.includes('🤖 AI 선생님의 학습 분석') ||
-            (child.querySelector && child.querySelector('h3') && 
-             child.querySelector('h3').textContent.includes('🤖 AI 선생님의 학습 분석'))) {
+        if (child.style.pageBreakBefore === 'always' || 
+            child.textContent.includes('AI 학습 분석') ||
+            child.querySelector('h3') && child.querySelector('h3').textContent.includes('AI 학습 분석')) {
           isPage2 = true;
         }
         
@@ -382,9 +417,9 @@ class DrawingApp {
       console.error('PDF 다운로드 중 오류:', error);
       alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
-      // 버튼 영역 다시 표시 (PDF 생성 완료 후)
-      const buttonArea = document.querySelector('#resultsPage div[style*="text-align: center"]');
-      if (buttonArea && buttonArea.style.display === 'none') {
+      // 버튼 영역 다시 표시
+      const buttonArea = document.querySelector('#resultsPage div[style*="display: none"]');
+      if (buttonArea) {
         buttonArea.style.display = 'block';
       }
 
@@ -520,6 +555,12 @@ class DrawingApp {
     this.canvasManager.resetAll();
     this.resetFeedback();
     this.resetAIFeedback();
+    
+    // 기존 배지 미리보기 제거
+    const existingPreview = document.getElementById('badgePreview');
+    if (existingPreview) {
+      existingPreview.remove();
+    }
     
     // 시작 페이지로
     this.showPage('start');
