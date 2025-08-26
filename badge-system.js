@@ -206,15 +206,17 @@ export class BadgeSystem {
       
       .badge-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
         margin-top: 15px;
       }
       
       .badge-card {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        padding: 15px;
+        text-align: center;
+        padding: 15px 10px;
         background: white;
         border-radius: 8px;
         border: 2px solid #e0e0e0;
@@ -233,8 +235,8 @@ export class BadgeSystem {
       }
       
       .badge-card-icon {
-        font-size: 2.5rem;
-        margin-right: 15px;
+        font-size: 2.2rem;
+        margin-bottom: 8px;
       }
       
       .badge-card.locked .badge-card-icon {
@@ -243,13 +245,15 @@ export class BadgeSystem {
       
       .badge-info h5 {
         margin: 0 0 5px 0;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         color: #333;
+        font-weight: 600;
       }
       
       .badge-status {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         color: #666;
+        line-height: 1.3;
       }
       
       .badge-card.achieved .badge-status {
@@ -259,7 +263,31 @@ export class BadgeSystem {
 
       @media (max-width: 768px) {
         .badge-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+        }
+        
+        .badge-card {
+          padding: 12px 8px;
+        }
+        
+        .badge-card-icon {
+          font-size: 1.8rem;
+          margin-bottom: 6px;
+        }
+        
+        .badge-info h5 {
+          font-size: 0.85rem;
+        }
+        
+        .badge-status {
+          font-size: 0.75rem;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .badge-grid {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
     `;
