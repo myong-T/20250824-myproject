@@ -172,8 +172,8 @@ export class BadgeSystem {
     const achievedCount = this.getAchievedCount(session);
     
     return `
+      <h3>🏆 학습 배지 컬렉션 (${achievedCount}/5 달성)</h3>
       <div class="badge-collection">
-        <h3>🏆 학습 배지 컬렉션 (${achievedCount}/5 달성)</h3>
         <div class="badge-grid">
           ${Object.values(status).map(badge => `
             <div class="badge-card ${badge.achieved ? 'achieved' : 'locked'}">
