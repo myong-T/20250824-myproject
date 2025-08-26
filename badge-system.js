@@ -7,9 +7,12 @@ export class BadgeSystem {
         id: 'perfectionist',
         name: '완벽주의자',
         icon: '🏆',
-        condition: '최고 점수 300점 달성',
-        check: (session) => this.getMaxScore(session) === 300,
-        progress: (session) => `${this.getMaxScore(session)}/300점`
+        condition: '모든 도면에서 100점 달성 (각각 다른 시도 가능)',
+        check: (session) => this.getAllViewsPerfect(session),
+        progress: (session) => {
+          const perfectViews = this.getPerfectViewsCount(session);
+          return `${perfectViews}/3개 도면 완벽`;
+        }
       },
       persistent: {
         id: 'persistent', 
@@ -52,6 +55,45 @@ export class BadgeSystem {
         progress: (session) => '참여 완료!'
       }
     };
+  }
+
+  // 모든 도면에서 100점 달성했는지 확인 (각각 다른 시도에서도 가능)
+  getAllViewsPerfect(session) {
+    if (!session.attempts || session.attempts.length === 0) return false;
+    
+    let topPerfect = false;
+    let frontPerfect = false;
+    let sidePerfect = false;
+    
+    session.attempts.forEach(attempt => {
+      if (attempt.scores.top === 100) topPerfect = true;
+      if (attempt.scores.front === 100) frontPerfect = true;
+      if (attempt.scores.side === 100) sidePerfect = true;
+    });
+    
+    return topPerfect && frontPerfect && sidePerfect;
+  }
+
+  // 완벽한 도면 개수 계산
+  getPerfectViewsCount(session) {
+    if (!session.attempts || session.attempts.length === 0) return 0;
+    
+    let count = 0;
+    let topPerfect = false;
+    let frontPerfect = false;
+    let sidePerfect = false;
+    
+    session.attempts.forEach(attempt => {
+      if (attempt.scores.top === 100) topPerfect = true;
+      if (attempt.scores.front === 100) frontPerfect = true;
+      if (attempt.scores.side === 100) sidePerfect = true;
+    });
+    
+    if (topPerfect) count++;
+    if (frontPerfect) count++;
+    if (sidePerfect) count++;
+    
+    return count;
   }
 
   // 세션에서 최고 점수 계산
@@ -104,7 +146,7 @@ export class BadgeSystem {
       case 'persistent':
         return session.attempts?.length >= 7; // 10회 중 7회 이상
       case 'perfectionist':
-        return this.getMaxScore(session) >= 250; // 300점 중 250점 이상
+        return this.getPerfectViewsCount(session) >= 2; // 3개 중 2개 완벽
       case 'improver':
         return this.getImprovement(session) >= 70; // 100점 중 70점 이상
       case 'speedLearner':
