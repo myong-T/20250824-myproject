@@ -9,7 +9,6 @@ import { Viewer3D } from './viewer-3d.js';
 import { AnswerChecker } from './answer-checker.js';
 import { LearningAnalyzer } from './learning-analyzer.js';
 import { AIFeedbackManager } from './ai-feedback-manager.js';
-import { BadgeSystem } from './badge-system.js'; // 🆕 새로 추가
 
 class DrawingApp {
   constructor() {
@@ -19,7 +18,6 @@ class DrawingApp {
     this.answerChecker = new AnswerChecker();
     this.learningAnalyzer = new LearningAnalyzer();
     this.aiFeedbackManager = new AIFeedbackManager();
-    this.badgeSystem = new BadgeSystem(); // 🆕 새로 추가
     
     // 마지막 검증 결과 저장 (AI 피드백에서 사용)
     this.lastValidationResults = null;
@@ -122,42 +120,13 @@ class DrawingApp {
     
     // 캔버스 초기화
     this.canvasManager.initCanvases(difficulty);
-    
-    // 🆕 미니 배지 미리보기 표시
-    this.showMiniBadgePreview();
   }
 
-  // 🆕 미니 배지 미리보기 표시
-  showMiniBadgePreview() {
-    // CSS 스타일 추가
-    this.badgeSystem.addBadgeStyles();
-    
-    // 미니 배지 HTML 생성
-    const miniBadgeHTML = this.badgeSystem.generateMiniBadgeHTML(this.learningSession);
-    
-    // AI 피드백 섹션 찾기
-    const aiFeedbackSection = document.querySelector('div[style*="margin-top: 15px;"] h3');
-    
-    if (aiFeedbackSection && aiFeedbackSection.textContent.includes('AI 선생님께 조언 받기')) {
-      // 기존 배지 미리보기 제거 (있다면)
-      const existingPreview = document.getElementById('badgePreview');
-      if (existingPreview) {
-        existingPreview.remove();
-      }
-      
-      // 새 배지 미리보기 삽입
-      aiFeedbackSection.parentNode.insertAdjacentHTML('beforebegin', miniBadgeHTML);
-    }
-  }
+  // 🆕 미니 배지 미리보기 표시 (제거됨)
+  // showMiniBadgePreview() { ... }
 
-  // 🆕 미니 배지 실시간 업데이트
-  updateMiniBadgePreview() {
-    const existingPreview = document.getElementById('badgePreview');
-    if (existingPreview && this.learningSession) {
-      const updatedHTML = this.badgeSystem.generateMiniBadgeHTML(this.learningSession);
-      existingPreview.outerHTML = updatedHTML;
-    }
-  }
+  // 🆕 미니 배지 실시간 업데이트 (제거됨)  
+  // updateMiniBadgePreview() { ... }
 
   // 학습 세션 시작
   startLearningSession(difficulty) {
@@ -246,9 +215,6 @@ class DrawingApp {
         comment.textContent = result.message;
       }
     });
-
-    // 🆕 미니 배지 업데이트
-    this.updateMiniBadgePreview();
   }
 
   // 학습 시도 기록
@@ -555,12 +521,6 @@ class DrawingApp {
     this.canvasManager.resetAll();
     this.resetFeedback();
     this.resetAIFeedback();
-    
-    // 기존 배지 미리보기 제거
-    const existingPreview = document.getElementById('badgePreview');
-    if (existingPreview) {
-      existingPreview.remove();
-    }
     
     // 시작 페이지로
     this.showPage('start');
