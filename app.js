@@ -1,5 +1,5 @@
 // ========================================
-// 📄 app.js (수정된 버전)
+// 📄 app.js (개선된 PDF 다운로드 버전)
 // ========================================
 
 // 기존 import에 BadgeSystem 추가
@@ -121,12 +121,6 @@ class DrawingApp {
     // 캔버스 초기화
     this.canvasManager.initCanvases(difficulty);
   }
-
-  // 🆕 미니 배지 미리보기 표시 (제거됨)
-  // showMiniBadgePreview() { ... }
-
-  // 🆕 미니 배지 실시간 업데이트 (제거됨)  
-  // updateMiniBadgePreview() { ... }
 
   // 학습 세션 시작
   startLearningSession(difficulty) {
@@ -289,7 +283,7 @@ class DrawingApp {
     }
   }
 
-  // 간소화된 PDF 다운로드 (화면과 동일한 구조)
+  // 🔥 개선된 PDF 다운로드 (2페이지 구분)
   async downloadLearningReport() {
     try {
       // 다운로드 버튼 비활성화
@@ -319,27 +313,8 @@ class DrawingApp {
         buttonArea.style.display = 'none';
       }
 
-      // 1페이지와 2페이지 요소 분리 (페이지 구분 마커 기준)
-      const page1Elements = [];
-      const page2Elements = [];
-      
-      let isPage2 = false;
-      const allChildren = Array.from(contentContainer.children);
-      
-      allChildren.forEach((child) => {
-        // 페이지 구분 마커 확인
-        if (child.style.pageBreakBefore === 'always' || 
-            child.textContent.includes('AI 학습 분석') ||
-            child.querySelector('h3') && child.querySelector('h3').textContent.includes('AI 학습 분석')) {
-          isPage2 = true;
-        }
-        
-        if (isPage2) {
-          page2Elements.push(child);
-        } else {
-          page1Elements.push(child);
-        }
-      });
+      // 🔥 개선된 페이지 분할 로직
+      const { page1Elements, page2Elements } = this.separateContentForPDF(contentContainer);
 
       console.log(`페이지 1 요소 수: ${page1Elements.length}, 페이지 2 요소 수: ${page2Elements.length}`);
 
@@ -398,7 +373,58 @@ class DrawingApp {
     }
   }
 
-  // PDF 페이지 생성 (화면과 동일한 구조 사용)
+  // 🔥 새로운 페이지 분할 함수
+  separateContentForPDF(contentContainer) {
+    const page1Elements = [];
+    const page2Elements = [];
+    
+    let foundAIAnalysis = false;
+    const allChildren = Array.from(contentContainer.children);
+    
+    allChildren.forEach((child) => {
+      // AI 학습 분석 섹션 감지 (여러 조건으로 확인)
+      const isAIAnalysisSection = (
+        // h3 태그에 "AI 선생님의 학습 분석" 텍스트가 포함된 경우
+        (child.querySelector('h3') && child.querySelector('h3').textContent.includes('AI 선생님의 학습 분석')) ||
+        // 직접적으로 해당 텍스트를 포함한 경우
+        child.textContent.includes('🤖 AI 선생님의 학습 분석') ||
+        child.textContent.includes('AI 선생님의 학습 분석') ||
+        // class 이름으로 확인
+        child.classList.contains('learning-stats') && child.innerHTML.includes('AI 선생님의 학습 분석')
+      );
+      
+      // AI 분석 섹션을 발견했다면 플래그 설정
+      if (isAIAnalysisSection) {
+        foundAIAnalysis = true;
+        console.log('AI 분석 섹션 발견:', child.textContent.substring(0, 50) + '...');
+      }
+      
+      // 페이지 분할
+      if (foundAIAnalysis) {
+        page2Elements.push(child);
+      } else {
+        page1Elements.push(child);
+      }
+    });
+
+    // 디버깅 정보
+    console.log('=== 페이지 분할 결과 ===');
+    console.log('1페이지 요소들:');
+    page1Elements.forEach((el, idx) => {
+      const text = el.textContent ? el.textContent.substring(0, 30).replace(/\n/g, ' ') : '[빈 요소]';
+      console.log(`  ${idx + 1}. ${el.tagName || 'DIV'}: ${text}...`);
+    });
+    
+    console.log('2페이지 요소들:');
+    page2Elements.forEach((el, idx) => {
+      const text = el.textContent ? el.textContent.substring(0, 30).replace(/\n/g, ' ') : '[빈 요소]';
+      console.log(`  ${idx + 1}. ${el.tagName || 'DIV'}: ${text}...`);
+    });
+    
+    return { page1Elements, page2Elements };
+  }
+
+  // PDF 페이지 생성 (기존 함수 유지, 약간의 개선)
   async generatePDFPage(pdf, elements, originalContainer, contentWidth, maxContentHeight, margin, pageNumber) {
     try {
       // 임시 컨테이너 생성
