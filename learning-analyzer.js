@@ -1,13 +1,11 @@
-// ========================================
-// 📄 learning-analyzer.js (수정된 버전)
-// ========================================
+// learning-analyzer.js - 학습 결과 분석 시스템 (최고 점수 도면 이미지 표시)
 
 export class LearningAnalyzer {
   constructor() {
     this.isAIAnalyzing = false;
   }
 
-  // 학습 결과 분석 및 표시 (AI 선생님 분석 포함)
+  // 학습 결과 분석 및 표시 (매 세션마다 AI 선생님 분석 실행)
   async displayLearningResults(learningSession) {
     const session = learningSession;
     
@@ -15,13 +13,13 @@ export class LearningAnalyzer {
       // 기본 통계 표시
       this.displayBasicStats(session);
       
-      // 도면 이미지 표시
-      this.displayDrawingImages(session);
+      // 🆕 최고 점수 도면 이미지 표시 (마지막 시도가 아닌 최고 점수 시도)
+      this.displayBestDrawingImages(session);
       
-      // 🆕 기존 성취도 표시 대신 새로운 배지 컬렉션 표시
-      await this.displayBadgeCollection(session);
+      // 성취도 표시
+      this.displayAchievements(session);
       
-      // AI 선생님 분석 실행 (Netlify Functions 사용)
+      // AI 선생님 분석 매번 실행 (세션별로 새로운 분석)
       await this.runAutoTeacherAnalysis(session);
       
     } catch (error) {
@@ -29,51 +27,295 @@ export class LearningAnalyzer {
     }
   }
 
-  // 🆕 배지 컬렉션 표시 (기존 displayAchievements 대체)
-  async displayBadgeCollection(session) {
-    const achievementArea = document.getElementById('achievementArea');
-    
-    if (!achievementArea) {
-      console.warn('성취도 표시 영역을 찾을 수 없습니다.');
-      return;
-    }
-
+  // 🆕 최고 점수 도면 이미지 표시 (기존 displayDrawingImages 함수 개선)
+  displayBestDrawingImages(session) {
     try {
-      // BadgeSystem을 동적으로 import
-      const { BadgeSystem } = await import('./badge-system.js');
-      const badgeSystem = new BadgeSystem();
+      if (!session.attempts || session.attempts.length === 0) {
+        console.warn('시도 기록이 없어 도면 이미지를 표시할 수 없습니다.');
+        return;
+      }
+
+      // 각 도면별로 최고 점수를 달성한 시도 찾기
+      const bestAttempts = this.findBestAttemptsForEachView(session);
       
-      // CSS 스타일 추가
-      badgeSystem.addBadgeStyles();
+      console.log('각 도면별 최고 점수 시도:', bestAttempts);
       
-      // 배지 컬렉션 HTML 생성 및 표시
-      achievementArea.innerHTML = badgeSystem.generateBadgeCollectionHTML(session);
+      // 각 도면 카드에 이미지 추가
+      Object.keys(bestAttempts).forEach(key => {
+        const statsElement = document.getElementById(`${key}Stats`);
+        if (statsElement && statsElement.parentElement) {
+          const statCard = statsElement.parentElement;
+          
+          // 기존 이미지가 있다면 제거
+          const existingImage = statCard.querySelector('.drawing-preview');
+          if (existingImage) {
+            existingImage.remove();
+          }
+          
+          const bestAttempt = bestAttempts[key];
+          if (bestAttempt && bestAttempt.canvasLines && bestAttempt.canvasLines[key]) {
+            // 최고 점수 캔버스 이미지 생성
+            const imageData = this.generateCanvasImage(
+              bestAttempt.canvasLines[key], 
+              session.difficulty, 
+              key
+            );
+            
+            if (imageData) {
+              // 이미지 엘리먼트 생성
+              const imageElement = document.createElement('img');
+              imageElement.src = imageData;
+              imageElement.className = 'drawing-preview';
+              imageElement.alt = `${this.getViewName(key)} 최고 점수 도면`;
+              imageElement.title = `${bestAttempt.scores[key]}점 달성 (시도 ${bestAttempt.attemptNumber})`;
+              
+              // CSS 스타일 적용 (기존 스타일과 동일)
+              imageElement.style.cssText = `
+                width: 100px;
+                height: 100px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-top: 8px;
+                background-color: white;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+                cursor: help;
+              `;
+              
+              // 이미지를 stat-value 아래에 추가
+              statsElement.parentElement.appendChild(imageElement);
+              
+              console.log(`${key} 도면 이미지 추가 완료 (${bestAttempt.scores[key]}점)`);
+            }
+          }
+        }
+      });
       
-      console.log('배지 컬렉션 표시 완료');
     } catch (error) {
-      console.error('배지 컬렉션 표시 중 오류:', error);
-      
-      // 오류 발생 시 기본 메시지 표시
-      achievementArea.innerHTML = `
-        <div style="text-align: center; padding: 20px; color: #666;">
-          <h3>🏆 학습 배지</h3>
-          <p>배지 시스템을 불러오는 중 오류가 발생했습니다.</p>
-          <p>새로고침 후 다시 시도해주세요.</p>
-        </div>
-      `;
+      console.error('최고 점수 도면 이미지 표시 중 오류:', error);
     }
   }
 
-  // AI 선생님 자동 분석 실행 (Netlify Functions 사용 - 경로 수정)
+  // 🆕 각 도면별로 최고 점수를 달성한 시도 찾기
+  findBestAttemptsForEachView(session) {
+    const bestAttempts = {};
+    
+    // 각 도면별로 초기화
+    ['top', 'front', 'side'].forEach(viewKey => {
+      bestAttempts[viewKey] = null;
+      let bestScore = -1;
+      
+      // 모든 시도를 검사하여 해당 도면의 최고 점수 찾기
+      session.attempts.forEach(attempt => {
+        if (attempt.canvasLines && attempt.canvasLines[viewKey] && attempt.scores[viewKey] > bestScore) {
+          bestScore = attempt.scores[viewKey];
+          bestAttempts[viewKey] = attempt;
+        }
+      });
+      
+      console.log(`${viewKey} 도면 최고 점수: ${bestScore}점 (시도 ${bestAttempts[viewKey]?.attemptNumber || '없음'})`);
+    });
+    
+    return bestAttempts;
+  }
+
+  // 🆕 도면 이름 반환 헬퍼 함수
+  getViewName(viewKey) {
+    const viewNames = { top: '평면도', front: '정면도', side: '우측면도' };
+    return viewNames[viewKey] || '도면';
+  }
+
+  // 캔버스에서 이미지 생성 (기존 함수 유지)
+  generateCanvasImage(lines, difficulty, viewKey) {
+    try {
+      // 임시 캔버스 생성
+      const canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      
+      // 배경 색상
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 격자 그리기 (축소된 크기)
+      const gridSize = 20; // 원본 30에서 20으로 축소
+      ctx.strokeStyle = "#e0e0e0";
+      ctx.lineWidth = 1;
+      
+      for (let x = 0; x <= canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      for (let y = 0; y <= canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      
+      // 기준점 그리기
+      const referencePoints = {
+        easy: {
+          top: { x: 3, y: 3, color: "green" },
+          front: { x: 3, y: 7, color: "blue" },
+          side: { x: 7, y: 7, color: "red" }
+        },
+        medium: {
+          top: { x: 2, y: 3, color: "green" },
+          front: { x: 2, y: 7, color: "blue" },
+          side: { x: 7, y: 7, color: "red" }
+        },
+        hard: {
+          top: { x: 2, y: 3, color: "green" },
+          front: { x: 2, y: 7, color: "blue" },
+          side: { x: 7, y: 7, color: "red" }
+        }
+      };
+      
+      const refPoint = referencePoints[difficulty][viewKey];
+      const referenceX = refPoint.x * gridSize;
+      const referenceY = refPoint.y * gridSize;
+      
+      ctx.fillStyle = refPoint.color;
+      ctx.beginPath();
+      ctx.arc(referenceX, referenceY, 3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 선분들 그리기
+      ctx.lineWidth = 2;
+      lines.forEach(line => {
+        ctx.strokeStyle = "black";
+        
+        // 선 스타일 설정
+        if (line.style === 'dashed') {
+          ctx.setLineDash([6, 3]); // 점선 (축소됨)
+        } else {
+          ctx.setLineDash([]); // 실선
+        }
+        
+        // 좌표를 축소된 크기에 맞게 변환 (30 -> 20)
+        const fromX = (line.from.x / 30) * gridSize;
+        const fromY = (line.from.y / 30) * gridSize;
+        const toX = (line.to.x / 30) * gridSize;
+        const toY = (line.to.y / 30) * gridSize;
+        
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      });
+      
+      // 점선 설정 초기화
+      ctx.setLineDash([]);
+      
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.error('캔버스 이미지 생성 중 오류:', error);
+      return null;
+    }
+  }
+
+  // 기본 통계 표시
+  displayBasicStats(session) {
+    try {
+      // 난이도 표시
+      const difficultyLabels = { easy: '하급', medium: '중급', hard: '상급' };
+      const difficultyColors = { easy: '#28a745', medium: '#fd7e14', hard: '#dc3545' };
+      const difficultyEmojis = { easy: '🌱', medium: '🚀', hard: '🏆' };
+      
+      const difficultyBadgeElement = document.getElementById('resultsDifficultyBadge');
+      if (difficultyBadgeElement) {
+        const difficultyLabel = difficultyLabels[session.difficulty] || '알 수 없음';
+        const difficultyColor = difficultyColors[session.difficulty] || '#6c757d';
+        const difficultyEmoji = difficultyEmojis[session.difficulty] || '📋';
+        
+        difficultyBadgeElement.innerHTML = `
+          <span style="
+            background-color: ${difficultyColor};
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+          ">
+            ${difficultyEmoji} ${difficultyLabel}
+          </span>
+        `;
+      }
+      
+      // 총 학습 시간 계산
+      const totalTime = Math.round((session.endTime - session.startTime) / 1000 / 60);
+      const totalTimeElement = document.getElementById('totalTime');
+      if (totalTimeElement) {
+        totalTimeElement.textContent = `${totalTime}분`;
+      }
+      
+      // 총 시도 횟수
+      const totalAttemptsElement = document.getElementById('totalAttempts');
+      if (totalAttemptsElement) {
+        totalAttemptsElement.textContent = `${session.attempts.length}회`;
+      }
+      
+      // 최고 점수와 최종 점수
+      const lastAttempt = session.attempts[session.attempts.length - 1];
+      const bestOverall = Math.max(
+        session.bestScores.top,
+        session.bestScores.front, 
+        session.bestScores.side
+      );
+      const finalOverall = Math.round(
+        (lastAttempt.scores.top + lastAttempt.scores.front + lastAttempt.scores.side) / 3
+      );
+      
+      const bestScoreElement = document.getElementById('bestScore');
+      if (bestScoreElement) {
+        bestScoreElement.textContent = `${bestOverall}점`;
+      }
+      
+      const finalScoreElement = document.getElementById('finalScore');
+      if (finalScoreElement) {
+        finalScoreElement.textContent = `${finalOverall}점`;
+      }
+      
+      // 도면별 상세 분석
+      const topStatsElement = document.getElementById('topStats');
+      if (topStatsElement) {
+        topStatsElement.textContent = `${session.bestScores.top}점`;
+      }
+      
+      const frontStatsElement = document.getElementById('frontStats');
+      if (frontStatsElement) {
+        frontStatsElement.textContent = `${session.bestScores.front}점`;
+      }
+      
+      const sideStatsElement = document.getElementById('sideStats');
+      if (sideStatsElement) {
+        sideStatsElement.textContent = `${session.bestScores.side}점`;
+      }
+      
+    } catch (error) {
+      console.error('기본 통계 표시 중 오류:', error);
+    }
+  }
+
+  // 자동 AI 선생님 분석 실행
   async runAutoTeacherAnalysis(session) {
     const analysisArea = document.getElementById('aiPatternAnalysis');
     
     if (!analysisArea) {
-      console.warn('AI 패턴 분석 영역을 찾을 수 없습니다.');
+      console.error('AI 선생님 분석 영역을 찾을 수 없습니다.');
       return;
     }
 
-    // 로딩 상태 표시
+    // 로딩 상태 표시 (매번 새로 표시)
     analysisArea.innerHTML = `
       <div class="loading-content" style="
         display: flex;
@@ -92,7 +334,7 @@ export class LearningAnalyzer {
           animation: spin 1s linear infinite;
           margin-right: 10px;
         "></div>
-        AI가 학습 패턴을 분석하고 있습니다...
+        AI 선생님이 학습 패턴을 분석하고 있습니다...
       </div>
     `;
 
@@ -106,8 +348,8 @@ export class LearningAnalyzer {
         throw new Error('분석 데이터 준비 실패');
       }
       
-      // Netlify Functions API 호출 (URL 변경)
-      const response = await fetch('/.netlify/functions/learning-analysis', {
+      // 백엔드 API 호출
+      const response = await fetch('/api/learning-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -154,11 +396,11 @@ export class LearningAnalyzer {
     }
   }
 
-  // AI 선생님 분석 오류 처리 (Netlify용)
+  // AI 선생님 분석 오류 처리
   handleTeacherAnalysisError(analysisArea, error) {
     let errorMessage = error.message;
     if (error.message.includes('Failed to fetch')) {
-      errorMessage = 'AI 서비스에 연결할 수 없습니다. 인터넷 연결을 확인해주세요.';
+      errorMessage = '서버에 연결할 수 없습니다.';
     } else if (error.message.includes('HTTP 401')) {
       errorMessage = 'API 키 인증 오류입니다.';
     } else if (error.message.includes('HTTP 429')) {
@@ -224,269 +466,556 @@ export class LearningAnalyzer {
 2. **정면도**: ${viewProgress.front.bestScore}점 (시도 ${viewProgress.front.attemptCount}회, 추세: ${this.getTrendKorean(viewProgress.front.trend)}, 일관성: ${viewProgress.front.consistency}%)
 3. **우측면도**: ${viewProgress.side.bestScore}점 (시도 ${viewProgress.side.attemptCount}회, 추세: ${this.getTrendKorean(viewProgress.side.trend)}, 일관성: ${viewProgress.side.consistency}%)
 
-**상세 학습 패턴:**
-${detailedPatterns}
+**학습 패턴 분석:**
+- 학습 집중도: ${detailedPatterns.focusLevel}
+- 학습 지속성: ${detailedPatterns.persistence}
+- 오류 개선 패턴: ${detailedPatterns.errorImprovement}
+- 강점 도면: ${detailedPatterns.strengths.join(', ')}
+- 약점 도면: ${detailedPatterns.weaknesses.join(', ')}
+- 특이 패턴: ${detailedPatterns.uniquePatterns.join(', ')}
 
-이 데이터를 바탕으로 중학교 1학년 수준에 맞는 친근하고 구체적인 학습 분석을 해주세요.`;
+**시간대별 성과 변화:**
+${this.getTimeBasedAnalysis(session)}
+
+**분석 요청 사항:**
+다음 형식으로 간결하고 친근하게 분석해주세요:
+
+## 📊 **현재 학습 상황**
+(이해도 수준, 강약점, 학습 태도 등을 2-3문장으로)
+
+## 🎯 **개인 학습 특성**
+(이 학습자만의 패턴과 선호 방식을 2-3문장으로)
+
+## 🚀 **다음 학습 방향**
+(구체적인 다음 단계와 목표를 2-3문장으로)
+
+## 💡 **실습 개선 방법**
+(당장 실천할 수 있는 방법 2-3가지를 간단히)
+
+**답변 조건:**
+- 중학생이 쉽게 이해할 수 있는 친근한 언어
+- 총 400-600자 내외
+- 격려와 동기부여 포함
+- 구체적이고 실행 가능한 조언
+- 과도한 부담 주지 않기
+- 영어 단어 사용 금지`;
 
       return analysisPrompt;
-
     } catch (error) {
-      console.error('학습 분석 데이터 준비 오류:', error);
+      console.error('학습 분석 데이터 준비 중 오류:', error);
       return null;
     }
   }
 
-  // 기본 통계 표시
-  displayBasicStats(session) {
-    const summary = this.getLearningSummary(session);
+  // 성취도 표시 (단일 배지 + 한 문장 시스템)
+  displayAchievements(session) {
+    try {
+      const achievementArea = document.getElementById('achievementArea');
+      if (!achievementArea) return;
 
-    // 난이도 배지 표시
-    const difficultyBadge = document.getElementById('resultsDifficultyBadge');
-    if (difficultyBadge) {
-      const labels = { easy: '하', medium: '중', hard: '상' };
-      const colors = { easy: '#28a745', medium: '#ffc107', hard: '#dc3545' };
-      difficultyBadge.innerHTML = `<span style="background-color: ${colors[session.difficulty]}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold;">${labels[session.difficulty]}</span>`;
+      // 기본 성취도 계산 (가장 중요한 배지 하나만 선택)
+      const mainAchievement = this.getMainAchievement(session);
+      const personalComment = this.generatePersonalizedComment(session);
+      
+      // 단일 배지 + 개인화된 코멘트 표시
+      achievementArea.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+          <div style="
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 25px 30px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            min-width: 300px;
+          ">
+            <div style="font-size: 2.2rem; margin-bottom: 10px;">${mainAchievement.emoji}</div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: #d68910; margin-bottom: 8px;">
+              ${mainAchievement.title}
+            </div>
+            <div style="font-size: 0.95rem; color: #8b6914;">
+              ${mainAchievement.description}
+            </div>
+          </div>
+          
+          <div style="
+            background-color: #e8f4fd;
+            border: 1px solid #bde3ff;
+            border-radius: 8px;
+            padding: 15px 25px;
+            font-size: 0.95rem;
+            color: #2980b9;
+            text-align: center;
+            font-weight: 500;
+            max-width: 500px;
+            width: 100%;
+            min-width: 300px;
+          ">
+            ${personalComment}
+          </div>
+        </div>
+      `;
+      
+    } catch (error) {
+      console.error('성취도 표시 중 오류:', error);
+      // 오류 시 기본 메시지
+      const achievementArea = document.getElementById('achievementArea');
+      if (achievementArea) {
+        achievementArea.innerHTML = `
+          <div style="text-align: center; color: #6c757d;">
+            <p>🌱 도면 그리기 학습을 완료하셨습니다!</p>
+            <p>수고하셨어요!</p>
+          </div>
+        `;
+      }
     }
-
-    // 통계 데이터 표시
-    document.getElementById('totalTime').textContent = `${summary.totalTime}분`;
-    document.getElementById('totalAttempts').textContent = `${summary.totalAttempts}회`;
-    document.getElementById('bestScore').textContent = `${summary.bestScore}점`;
-    document.getElementById('finalScore').textContent = `${summary.finalScore}점`;
-
-    // 도면별 통계
-    const viewProgress = {
-      top: this.getViewProgress(session, 'top'),
-      front: this.getViewProgress(session, 'front'),
-      side: this.getViewProgress(session, 'side')
-    };
-
-    document.getElementById('topStats').textContent = `${viewProgress.top.bestScore}점`;
-    document.getElementById('frontStats').textContent = `${viewProgress.front.bestScore}점`;
-    document.getElementById('sideStats').textContent = `${viewProgress.side.bestScore}점`;
   }
 
-  // 도면 이미지 생성 및 표시
-  displayDrawingImages(session) {
-    // 캔버스에서 이미지 생성하는 로직
-    // (현재는 기본 구현만 제공)
+  // 가장 중요한 단일 배지 선택
+  getMainAchievement(session) {
+    try {
+      const summary = this.getLearningSummary(session);
+      const totalMinutes = Math.round((session.endTime - session.startTime) / 1000 / 60);
+      const perfectViews = Object.keys(session.bestScores).filter(key => session.bestScores[key] === 100);
+      const averageScore = Math.round((session.bestScores.top + session.bestScores.front + session.bestScores.side) / 3);
+      
+      // 우선순위별로 배지 선택
+      
+      // 1순위: 완벽 점수 달성
+      if (perfectViews.length === 3) {
+        return {
+          emoji: '👑',
+          title: '완벽 마스터',
+          description: '모든 도면에서 100점 달성'
+        };
+      }
+      
+      if (perfectViews.length === 2) {
+        return {
+          emoji: '🌟',
+          title: '거의 완벽',
+          description: '2개 도면에서 100점 달성'
+        };
+      }
+      
+      if (perfectViews.length === 1) {
+        const viewNames = { top: '평면도', front: '정면도', side: '우측면도' };
+        const perfectView = viewNames[perfectViews[0]];
+        return {
+          emoji: '⭐',
+          title: '첫 완벽',
+          description: `${perfectView}에서 100점 달성`
+        };
+      }
+      
+      // 2순위: 고득점 달성
+      if (averageScore >= 90) {
+        return {
+          emoji: '🔥',
+          title: '고득점 달성',
+          description: `평균 ${averageScore}점의 높은 실력`
+        };
+      }
+      
+      if (averageScore >= 80) {
+        return {
+          emoji: '💎',
+          title: '우수한 실력',
+          description: `평균 ${averageScore}점 달성`
+        };
+      }
+      
+      // 3순위: 끈기와 노력
+      if (session.attempts.length >= 7) {
+        return {
+          emoji: '💪',
+          title: '끈기의 챔피언',
+          description: `${session.attempts.length}번 도전으로 포기하지 않음`
+        };
+      }
+      
+      if (totalMinutes >= 20) {
+        return {
+          emoji: '⏰',
+          title: '집중력 마스터',
+          description: `${totalMinutes}분 동안 집중 학습`
+        };
+      }
+      
+      // 4순위: 빠른 학습
+      if (session.attempts.length <= 2 && averageScore >= 60) {
+        return {
+          emoji: '⚡',
+          title: '빠른 학습',
+          description: '적은 시도로 좋은 결과'
+        };
+      }
+      
+      // 5순위: 향상
+      if (session.attempts.length > 1) {
+        const improvement = this.calculateImprovement(session);
+        if (improvement >= 20) {
+          return {
+            emoji: '📈',
+            title: '급성장',
+            description: `첫 시도보다 ${improvement}점 향상`
+          };
+        }
+        if (improvement >= 10) {
+          return {
+            emoji: '📊',
+            title: '꾸준한 성장',
+            description: `${improvement}점 향상으로 발전`
+          };
+        }
+      }
+      
+      // 6순위: 난이도별 도전
+      const difficultyBadges = {
+        hard: {
+          emoji: '🚀',
+          title: '상급 도전자',
+          description: '어려운 과정에 도전하는 용기'
+        },
+        medium: {
+          emoji: '🎯',
+          title: '중급 도전자',
+          description: '숨은선까지 배우는 열정'
+        },
+        easy: {
+          emoji: '🌱',
+          title: '첫 도전',
+          description: '기초를 탄탄히 다지는 중'
+        }
+      };
+      
+      if (difficultyBadges[session.difficulty]) {
+        return difficultyBadges[session.difficulty];
+      }
+      
+      // 기본 배지
+      return {
+        emoji: '🎨',
+        title: '도면 입문',
+        description: '도면 그리기 첫 걸음 완료'
+      };
+      
+    } catch (error) {
+      console.error('메인 배지 선택 중 오류:', error);
+      return {
+        emoji: '🏆',
+        title: '학습 완료',
+        description: '도면 그리기 학습 완료'
+      };
+    }
   }
 
-  // 학습 요약 데이터 생성
+  // 학습자 상황에 맞는 개인화된 한 문장 생성
+  generatePersonalizedComment(session) {
+    try {
+      const summary = this.getLearningSummary(session);
+      const totalMinutes = Math.round((session.endTime - session.startTime) / 1000 / 60);
+      const perfectViews = Object.keys(session.bestScores).filter(key => session.bestScores[key] === 100);
+      const averageScore = Math.round((session.bestScores.top + session.bestScores.front + session.bestScores.side) / 3);
+      
+      // 완벽 점수 달성
+      if (perfectViews.length === 3) {
+        return "🌟 모든 도면을 완벽하게 그려내셨네요! 정투상법의 진정한 마스터입니다!";
+      }
+      
+      if (perfectViews.length === 2) {
+        return "🎯 두 도면에서 완벽한 점수! 한 단계만 더 올라가면 완전 정복이에요!";
+      }
+      
+      if (perfectViews.length === 1) {
+        const perfectView = { top: '평면도', front: '정면도', side: '우측면도' }[perfectViews[0]];
+        return `✨ ${perfectView}에서 완벽한 100점! 이 실력으로 다른 도면도 정복해보세요!`;
+      }
+      
+      // 고득점자
+      if (averageScore >= 85) {
+        return "🔥 평균 85점 이상의 높은 실력! 조금만 더 정교하게 그리면 완벽해질 거예요!";
+      }
+      
+      // 꾸준한 학습자
+      if (session.attempts.length >= 5 && totalMinutes >= 15) {
+        return "💪 15분 이상 꾸준히 도전하는 끈기! 이런 노력이면 반드시 실력이 늘 거예요!";
+      }
+      
+      // 빠른 학습자
+      if (session.attempts.length <= 2 && averageScore >= 70) {
+        return "⚡ 적은 시도로도 좋은 결과! 타고난 공간 감각을 가지고 계시네요!";
+      }
+      
+      // 향상이 뚜렷한 학습자
+      if (session.attempts.length > 1) {
+        const improvement = this.calculateImprovement(session);
+        if (improvement >= 15) {
+          return `📈 첫 시도보다 ${improvement}점 향상! 이런 성장 속도라면 금세 전문가가 될 거예요!`;
+        }
+      }
+      
+      // 난이도별 격려
+      const difficultyComments = {
+        easy: "🌱 하급 과정 도전 완료! 기초를 탄탄히 다져가고 있어요!",
+        medium: "🚀 중급 과정에 도전하는 용기! 숨은선까지 배우며 한 단계 성장했어요!",
+        hard: "🏆 상급 과정까지 도전하는 열정! 복잡한 도형도 두렵지 않은 실력자네요!"
+      };
+      
+      if (difficultyComments[session.difficulty]) {
+        return difficultyComments[session.difficulty];
+      }
+      
+      // 기본 격려 메시지
+      return "🎨 도면 그리기에 첫 발을 내딛은 용기! 이제 시작일 뿐이니 계속 도전해보세요!";
+      
+    } catch (error) {
+      console.error('개인화된 코멘트 생성 중 오류:', error);
+      return "🌟 도면 그리기 학습을 완료하셨네요! 수고하셨습니다!";
+    }
+  }
+
+  // 향상도 계산
+  calculateImprovement(session) {
+    try {
+      if (session.attempts.length < 2) return 0;
+      
+      const firstAttempt = session.attempts[0];
+      const lastAttempt = session.attempts[session.attempts.length - 1];
+      
+      const firstAvg = (firstAttempt.scores.top + firstAttempt.scores.front + firstAttempt.scores.side) / 3;
+      const lastAvg = (lastAttempt.scores.top + lastAttempt.scores.front + lastAttempt.scores.side) / 3;
+      
+      return Math.round(lastAvg - firstAvg);
+    } catch (error) {
+      console.error('향상도 계산 중 오류:', error);
+      return 0;
+    }
+  }
+
+  // 학습 통계 요약 반환
   getLearningSummary(session) {
-    if (!session.attempts || session.attempts.length === 0) {
+    try {
+      const totalTime = Math.round((session.endTime - session.startTime) / 1000 / 60);
+      const lastAttempt = session.attempts[session.attempts.length - 1];
+      const bestOverall = Math.max(session.bestScores.top, session.bestScores.front, session.bestScores.side);
+      const finalOverall = Math.round(
+        (lastAttempt.scores.top + lastAttempt.scores.front + lastAttempt.scores.side) / 3
+      );
+
+      return {
+        totalTime,
+        totalAttempts: session.attempts.length,
+        bestScore: bestOverall,
+        finalScore: finalOverall,
+        difficulty: session.difficulty,
+        improvement: this.calculateImprovement(session),
+        bestScores: { ...session.bestScores }
+      };
+    } catch (error) {
+      console.error('학습 통계 요약 중 오류:', error);
       return {
         totalTime: 0,
         totalAttempts: 0,
         bestScore: 0,
         finalScore: 0,
-        improvement: 0
+        difficulty: 'unknown',
+        improvement: 0,
+        bestScores: { top: 0, front: 0, side: 0 }
       };
     }
-
-    const totalTime = session.endTime && session.startTime ? 
-      Math.round((session.endTime - session.startTime) / (1000 * 60)) : 0;
-    
-    const scores = session.attempts.map(attempt => 
-      attempt.scores.top + attempt.scores.front + attempt.scores.side
-    );
-    
-    const bestScore = Math.max(...scores, 0);
-    const finalScore = scores[scores.length - 1] || 0;
-    const firstScore = scores[0] || 0;
-    const improvement = bestScore - firstScore;
-
-    return {
-      totalTime,
-      totalAttempts: session.attempts.length,
-      bestScore,
-      finalScore,
-      improvement
-    };
   }
 
-  // 도면별 진행상황 분석
+  // 특정 도면의 학습 진도 분석
   getViewProgress(session, viewKey) {
-    if (!session.attempts || session.attempts.length === 0) {
+    try {
+      const scores = session.attempts.map(attempt => attempt.scores[viewKey]);
+      const trend = this.calculateTrend(scores);
+      
       return {
+        viewName: { top: '평면도', front: '정면도', side: '우측면도' }[viewKey] || '알 수 없음',
+        bestScore: session.bestScores[viewKey] || 0,
+        attemptCount: scores.length,
+        scoreHistory: scores,
+        trend: trend,
+        consistency: this.calculateConsistency(scores)
+      };
+    } catch (error) {
+      console.error('도면 진도 분석 중 오류:', error);
+      return {
+        viewName: '분석 오류',
         bestScore: 0,
         attemptCount: 0,
+        scoreHistory: [],
         trend: 'stable',
         consistency: 0
       };
     }
+  }
 
-    const viewScores = session.attempts.map(attempt => attempt.scores[viewKey]);
-    const bestScore = Math.max(...viewScores, 0);
-    const attemptCount = viewScores.length;
-    
-    // 추세 분석
-    let trend = 'stable';
-    if (attemptCount >= 3) {
-      const firstHalf = viewScores.slice(0, Math.floor(attemptCount / 2));
-      const secondHalf = viewScores.slice(Math.floor(attemptCount / 2));
+  // 점수 추세 계산
+  calculateTrend(scores) {
+    try {
+      if (scores.length < 2) return 'stable';
+      
+      const firstHalf = scores.slice(0, Math.ceil(scores.length / 2));
+      const secondHalf = scores.slice(Math.floor(scores.length / 2));
+      
       const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
       const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
       
-      if (secondAvg > firstAvg + 10) trend = 'improving';
-      else if (secondAvg < firstAvg - 10) trend = 'declining';
+      if (secondAvg > firstAvg + 5) return 'improving';
+      if (secondAvg < firstAvg - 5) return 'declining';
+      return 'stable';
+    } catch (error) {
+      console.error('점수 추세 계산 중 오류:', error);
+      return 'stable';
     }
-    
-    // 일관성 계산
-    const avgScore = viewScores.reduce((a, b) => a + b, 0) / viewScores.length;
-    const variance = viewScores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / viewScores.length;
-    const consistency = Math.max(0, 100 - Math.sqrt(variance));
-
-    return {
-      bestScore,
-      attemptCount,
-      trend,
-      consistency: Math.round(consistency)
-    };
   }
 
-  // 상세 학습 패턴 분석
-  getDetailedLearningPatterns(session) {
-    if (!session.attempts || session.attempts.length === 0) {
-      return '학습 데이터가 부족합니다.';
+  // 점수 일관성 계산
+  calculateConsistency(scores) {
+    try {
+      if (scores.length < 2) return 100;
+      
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const variance = scores.reduce((sum, score) => sum + Math.pow(score - avg, 2), 0) / scores.length;
+      const stdDev = Math.sqrt(variance);
+      
+      return Math.max(0, Math.round(100 - stdDev));
+    } catch (error) {
+      console.error('점수 일관성 계산 중 오류:', error);
+      return 0;
     }
-
-    let patterns = [];
-    
-    // 강점/약점 분석
-    const viewProgress = {
-      top: this.getViewProgress(session, 'top'),
-      front: this.getViewProgress(session, 'front'),
-      side: this.getViewProgress(session, 'side')
-    };
-    
-    const viewNames = { top: '평면도', front: '정면도', side: '우측면도' };
-    const strongViews = [];
-    const weakViews = [];
-    
-    Object.keys(viewProgress).forEach(key => {
-      if (viewProgress[key].bestScore >= 80) {
-        strongViews.push(viewNames[key]);
-      } else if (viewProgress[key].bestScore < 60) {
-        weakViews.push(viewNames[key]);
-      }
-    });
-    
-    if (strongViews.length > 0) {
-      patterns.push(`• 강점 영역: ${strongViews.join(', ')}`);
-    }
-    
-    if (weakViews.length > 0) {
-      patterns.push(`• 개선 필요 영역: ${weakViews.join(', ')}`);
-    }
-    
-    // 학습 스타일 분석
-    const summary = this.getLearningSummary(session);
-    if (summary.totalAttempts <= 5) {
-      patterns.push('• 신중한 학습 스타일: 적은 시도로 문제 해결');
-    } else if (summary.totalAttempts >= 15) {
-      patterns.push('• 적극적 학습 스타일: 많은 시도를 통한 학습');
-    }
-    
-    if (summary.improvement >= 50) {
-      patterns.push('• 빠른 개선 능력: 학습을 통한 점수 향상이 뛰어남');
-    }
-    
-    return patterns.length > 0 ? patterns.join('\n') : '일반적인 학습 패턴을 보였습니다.';
   }
 
   // 추세를 한국어로 변환
   getTrendKorean(trend) {
-    const trendMap = {
-      'improving': '향상중',
-      'declining': '하락중',
-      'stable': '안정적'
-    };
-    return trendMap[trend] || '안정적';
-  }
-
-  // 캔버스에서 이미지 생성 (기본 구현)
-  generateCanvasImage(lines, difficulty, viewKey) {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 200;
-      canvas.height = 200;
-      const ctx = canvas.getContext('2d');
-      
-      // 배경 색상
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // 격자 그리기
-      const gridSize = 20;
-      ctx.strokeStyle = "#e0e0e0";
-      ctx.lineWidth = 1;
-      
-      for (let x = 0; x <= canvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      
-      for (let y = 0; y <= canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-      
-      // 선분 그리기
-      if (lines && lines.length > 0) {
-        lines.forEach(line => {
-          ctx.beginPath();
-          ctx.strokeStyle = line.style === 'dashed' ? '#333' : '#000';
-          ctx.lineWidth = 2;
-          
-          if (line.style === 'dashed') {
-            ctx.setLineDash([5, 5]);
-          } else {
-            ctx.setLineDash([]);
-          }
-          
-          const scale = gridSize / 30; // 원본 격자 크기 비율
-          ctx.moveTo(line.from.x * scale, line.from.y * scale);
-          ctx.lineTo(line.to.x * scale, line.to.y * scale);
-          ctx.stroke();
-        });
-      }
-      
-      return canvas.toDataURL();
-    } catch (error) {
-      console.error('캔버스 이미지 생성 오류:', error);
-      return null;
+    switch (trend) {
+      case 'improving': return '향상 중';
+      case 'declining': return '하락 중';
+      case 'stable': return '안정적';
+      default: return '분석 중';
     }
   }
 
-  // PDF 다운로드를 위한 유틸리티 메서드들
-  async generatePDFReport(session) {
-    // PDF 생성 로직 (기존과 동일)
-    // 여기서는 기본 구현만 제공
-    console.log('PDF 생성 기능은 별도 구현이 필요합니다.');
+  // 상세 학습 패턴 분석
+  getDetailedLearningPatterns(session) {
+    try {
+      const totalTime = (session.endTime - session.startTime) / 1000 / 60;
+      const attempts = session.attempts;
+      
+      // 학습 집중도
+      let focusLevel = '분석 불가';
+      if (attempts.length > 0) {
+        const avgTimePerAttempt = totalTime / attempts.length;
+        if (avgTimePerAttempt < 3) {
+          focusLevel = '높음';
+        } else if (avgTimePerAttempt < 6) {
+          focusLevel = '보통';
+        } else {
+          focusLevel = '낮음';
+        }
+      }
+      
+      // 학습 지속성
+      let persistence = '짧은 집중형';
+      if (totalTime >= 40) {
+        persistence = '매우 꾸준한 형';
+      } else if (totalTime >= 20) {
+        persistence = '끈기 있는 형';
+      } else if (totalTime >= 10) {
+        persistence = '적정 지속형';
+      }
+      
+      // 오류 개선 패턴
+      let errorImprovement = '분석 중';
+      if (attempts.length > 1) {
+        const firstScore = (attempts[0].scores.top + attempts[0].scores.front + attempts[0].scores.side) / 3;
+        const lastScore = (attempts[attempts.length - 1].scores.top + attempts[attempts.length - 1].scores.front + attempts[attempts.length - 1].scores.side) / 3;
+        
+        if (lastScore > firstScore + 10) {
+          errorImprovement = '빠른 개선형';
+        } else if (lastScore > firstScore) {
+          errorImprovement = '점진적 개선형';
+        } else if (lastScore === firstScore) {
+          errorImprovement = '안정적 유지형';
+        } else {
+          errorImprovement = '재검토 필요형';
+        }
+      }
+      
+      // 강점/약점 도면
+      const scores = session.bestScores;
+      const viewNames = { top: '평면도', front: '정면도', side: '우측면도' };
+      const sortedViews = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+      
+      const strengths = [viewNames[sortedViews[0]]];
+      const weaknesses = scores[sortedViews[2]] < 80 ? [viewNames[sortedViews[2]]] : [];
+      
+      // 특이 패턴
+      const uniquePatterns = [];
+      if (attempts.length === 1) uniquePatterns.push('일발성공형');
+      if (attempts.length > 5) uniquePatterns.push('끈기형');
+      if (scores.top === scores.front && scores.front === scores.side) uniquePatterns.push('균형형');
+      if (Math.max(...Object.values(scores)) - Math.min(...Object.values(scores)) > 30) uniquePatterns.push('편차형');
+      
+      return {
+        focusLevel,
+        persistence,
+        errorImprovement,
+        strengths,
+        weaknesses,
+        uniquePatterns: uniquePatterns.length > 0 ? uniquePatterns : ['표준형']
+      };
+    } catch (error) {
+      console.error('상세 학습 패턴 분석 중 오류:', error);
+      return {
+        focusLevel: '분석 오류',
+        persistence: '분석 오류',
+        errorImprovement: '분석 오류',
+        strengths: ['분석 불가'],
+        weaknesses: ['분석 불가'],
+        uniquePatterns: ['분석 오류']
+      };
+    }
   }
 
-  // 학습 데이터 내보내기
-  exportLearningData(session) {
-    const data = {
-      session: session,
-      summary: this.getLearningSummary(session),
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `learning-data-${session.difficulty}-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  // 시간대별 성과 분석
+  getTimeBasedAnalysis(session) {
+    try {
+      if (session.attempts.length < 2) {
+        return '시도 횟수가 부족하여 시간대별 분석이 어렵습니다.';
+      }
+      
+      const attempts = session.attempts;
+      const timeIntervals = [];
+      
+      for (let i = 1; i < attempts.length; i++) {
+        const timeDiff = (attempts[i].timestamp - attempts[i-1].timestamp) / 1000 / 60;
+        const scoreDiff = (
+          (attempts[i].scores.top + attempts[i].scores.front + attempts[i].scores.side) -
+          (attempts[i-1].scores.top + attempts[i-1].scores.front + attempts[i-1].scores.side)
+        ) / 3;
+        
+        timeIntervals.push({
+          interval: Math.round(timeDiff),
+          improvement: Math.round(scoreDiff)
+        });
+      }
+      
+      let analysis = '';
+      timeIntervals.forEach((interval, index) => {
+        const sign = interval.improvement > 0 ? '+' : '';
+        analysis += `${index + 1}→${index + 2}차 시도: ${interval.interval}분 간격, 점수 변화 ${sign}${interval.improvement}점\n`;
+      });
+      
+      return analysis;
+    } catch (error) {
+      console.error('시간대별 성과 분석 중 오류:', error);
+      return '시간대별 분석 중 오류가 발생했습니다.';
+    }
   }
 }
