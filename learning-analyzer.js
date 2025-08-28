@@ -16,8 +16,8 @@ export class LearningAnalyzer {
       // 🆕 최고 점수 도면 이미지 표시 (마지막 시도가 아닌 최고 점수 시도)
       this.displayBestDrawingImages(session);
       
-      // 성취도 표시
-      this.displayAchievements(session);
+      // 🆕 기존 성취도 표시 대신 새로운 배지 컬렉션 표시
+      await this.displayBadgeCollection(session);
       
       // AI 선생님 분석 매번 실행 (세션별로 새로운 분석)
       await this.runAutoTeacherAnalysis(session);
@@ -507,291 +507,38 @@ ${this.getTimeBasedAnalysis(session)}
     }
   }
 
-  // 성취도 표시 (단일 배지 + 한 문장 시스템)
-  displayAchievements(session) {
-    try {
-      const achievementArea = document.getElementById('achievementArea');
-      if (!achievementArea) return;
+  // 🆕 배지 컬렉션 표시 (기존 displayAchievements 대체)
+  async displayBadgeCollection(session) {
+    const achievementArea = document.getElementById('achievementArea');
+    
+    if (!achievementArea) {
+      console.warn('성취도 표시 영역을 찾을 수 없습니다.');
+      return;
+    }
 
-      // 기본 성취도 계산 (가장 중요한 배지 하나만 선택)
-      const mainAchievement = this.getMainAchievement(session);
-      const personalComment = this.generatePersonalizedComment(session);
+    try {
+      // BadgeSystem을 동적으로 import
+      const { BadgeSystem } = await import('./badge-system.js');
+      const badgeSystem = new BadgeSystem();
       
-      // 단일 배지 + 개인화된 코멘트 표시
+      // CSS 스타일 추가
+      badgeSystem.addBadgeStyles();
+      
+      // 배지 컬렉션 HTML 생성 및 표시
+      achievementArea.innerHTML = badgeSystem.generateBadgeCollectionHTML(session);
+      
+      console.log('배지 컬렉션 표시 완료');
+    } catch (error) {
+      console.error('배지 컬렉션 표시 중 오류:', error);
+      
+      // 오류 발생 시 기본 메시지 표시
       achievementArea.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-          <div style="
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border: 2px solid #f39c12;
-            border-radius: 12px;
-            padding: 25px 30px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 100%;
-            min-width: 300px;
-          ">
-            <div style="font-size: 2.2rem; margin-bottom: 10px;">${mainAchievement.emoji}</div>
-            <div style="font-size: 1.2rem; font-weight: bold; color: #d68910; margin-bottom: 8px;">
-              ${mainAchievement.title}
-            </div>
-            <div style="font-size: 0.95rem; color: #8b6914;">
-              ${mainAchievement.description}
-            </div>
-          </div>
-          
-          <div style="
-            background-color: #e8f4fd;
-            border: 1px solid #bde3ff;
-            border-radius: 8px;
-            padding: 15px 25px;
-            font-size: 0.95rem;
-            color: #2980b9;
-            text-align: center;
-            font-weight: 500;
-            max-width: 500px;
-            width: 100%;
-            min-width: 300px;
-          ">
-            ${personalComment}
-          </div>
+        <div style="text-align: center; padding: 20px; color: #666;">
+          <h3>🏆 학습 배지</h3>
+          <p>배지 시스템을 불러오는 중 오류가 발생했습니다.</p>
+          <p>새로고침 후 다시 시도해주세요.</p>
         </div>
       `;
-      
-    } catch (error) {
-      console.error('성취도 표시 중 오류:', error);
-      // 오류 시 기본 메시지
-      const achievementArea = document.getElementById('achievementArea');
-      if (achievementArea) {
-        achievementArea.innerHTML = `
-          <div style="text-align: center; color: #6c757d;">
-            <p>🌱 도면 그리기 학습을 완료하셨습니다!</p>
-            <p>수고하셨어요!</p>
-          </div>
-        `;
-      }
-    }
-  }
-
-  // 가장 중요한 단일 배지 선택
-  getMainAchievement(session) {
-    try {
-      const summary = this.getLearningSummary(session);
-      const totalMinutes = Math.round((session.endTime - session.startTime) / 1000 / 60);
-      const perfectViews = Object.keys(session.bestScores).filter(key => session.bestScores[key] === 100);
-      const averageScore = Math.round((session.bestScores.top + session.bestScores.front + session.bestScores.side) / 3);
-      
-      // 우선순위별로 배지 선택
-      
-      // 1순위: 완벽 점수 달성
-      if (perfectViews.length === 3) {
-        return {
-          emoji: '👑',
-          title: '완벽 마스터',
-          description: '모든 도면에서 100점 달성'
-        };
-      }
-      
-      if (perfectViews.length === 2) {
-        return {
-          emoji: '🌟',
-          title: '거의 완벽',
-          description: '2개 도면에서 100점 달성'
-        };
-      }
-      
-      if (perfectViews.length === 1) {
-        const viewNames = { top: '평면도', front: '정면도', side: '우측면도' };
-        const perfectView = viewNames[perfectViews[0]];
-        return {
-          emoji: '⭐',
-          title: '첫 완벽',
-          description: `${perfectView}에서 100점 달성`
-        };
-      }
-      
-      // 2순위: 고득점 달성
-      if (averageScore >= 90) {
-        return {
-          emoji: '🔥',
-          title: '고득점 달성',
-          description: `평균 ${averageScore}점의 높은 실력`
-        };
-      }
-      
-      if (averageScore >= 80) {
-        return {
-          emoji: '💎',
-          title: '우수한 실력',
-          description: `평균 ${averageScore}점 달성`
-        };
-      }
-      
-      // 3순위: 끈기와 노력
-      if (session.attempts.length >= 7) {
-        return {
-          emoji: '💪',
-          title: '끈기의 챔피언',
-          description: `${session.attempts.length}번 도전으로 포기하지 않음`
-        };
-      }
-      
-      if (totalMinutes >= 20) {
-        return {
-          emoji: '⏰',
-          title: '집중력 마스터',
-          description: `${totalMinutes}분 동안 집중 학습`
-        };
-      }
-      
-      // 4순위: 빠른 학습
-      if (session.attempts.length <= 2 && averageScore >= 60) {
-        return {
-          emoji: '⚡',
-          title: '빠른 학습',
-          description: '적은 시도로 좋은 결과'
-        };
-      }
-      
-      // 5순위: 향상
-      if (session.attempts.length > 1) {
-        const improvement = this.calculateImprovement(session);
-        if (improvement >= 20) {
-          return {
-            emoji: '📈',
-            title: '급성장',
-            description: `첫 시도보다 ${improvement}점 향상`
-          };
-        }
-        if (improvement >= 10) {
-          return {
-            emoji: '📊',
-            title: '꾸준한 성장',
-            description: `${improvement}점 향상으로 발전`
-          };
-        }
-      }
-      
-      // 6순위: 난이도별 도전
-      const difficultyBadges = {
-        hard: {
-          emoji: '🚀',
-          title: '상급 도전자',
-          description: '어려운 과정에 도전하는 용기'
-        },
-        medium: {
-          emoji: '🎯',
-          title: '중급 도전자',
-          description: '숨은선까지 배우는 열정'
-        },
-        easy: {
-          emoji: '🌱',
-          title: '첫 도전',
-          description: '기초를 탄탄히 다지는 중'
-        }
-      };
-      
-      if (difficultyBadges[session.difficulty]) {
-        return difficultyBadges[session.difficulty];
-      }
-      
-      // 기본 배지
-      return {
-        emoji: '🎨',
-        title: '도면 입문',
-        description: '도면 그리기 첫 걸음 완료'
-      };
-      
-    } catch (error) {
-      console.error('메인 배지 선택 중 오류:', error);
-      return {
-        emoji: '🏆',
-        title: '학습 완료',
-        description: '도면 그리기 학습 완료'
-      };
-    }
-  }
-
-  // 학습자 상황에 맞는 개인화된 한 문장 생성
-  generatePersonalizedComment(session) {
-    try {
-      const summary = this.getLearningSummary(session);
-      const totalMinutes = Math.round((session.endTime - session.startTime) / 1000 / 60);
-      const perfectViews = Object.keys(session.bestScores).filter(key => session.bestScores[key] === 100);
-      const averageScore = Math.round((session.bestScores.top + session.bestScores.front + session.bestScores.side) / 3);
-      
-      // 완벽 점수 달성
-      if (perfectViews.length === 3) {
-        return "🌟 모든 도면을 완벽하게 그려내셨네요! 정투상법의 진정한 마스터입니다!";
-      }
-      
-      if (perfectViews.length === 2) {
-        return "🎯 두 도면에서 완벽한 점수! 한 단계만 더 올라가면 완전 정복이에요!";
-      }
-      
-      if (perfectViews.length === 1) {
-        const perfectView = { top: '평면도', front: '정면도', side: '우측면도' }[perfectViews[0]];
-        return `✨ ${perfectView}에서 완벽한 100점! 이 실력으로 다른 도면도 정복해보세요!`;
-      }
-      
-      // 고득점자
-      if (averageScore >= 85) {
-        return "🔥 평균 85점 이상의 높은 실력! 조금만 더 정교하게 그리면 완벽해질 거예요!";
-      }
-      
-      // 꾸준한 학습자
-      if (session.attempts.length >= 5 && totalMinutes >= 15) {
-        return "💪 15분 이상 꾸준히 도전하는 끈기! 이런 노력이면 반드시 실력이 늘 거예요!";
-      }
-      
-      // 빠른 학습자
-      if (session.attempts.length <= 2 && averageScore >= 70) {
-        return "⚡ 적은 시도로도 좋은 결과! 타고난 공간 감각을 가지고 계시네요!";
-      }
-      
-      // 향상이 뚜렷한 학습자
-      if (session.attempts.length > 1) {
-        const improvement = this.calculateImprovement(session);
-        if (improvement >= 15) {
-          return `📈 첫 시도보다 ${improvement}점 향상! 이런 성장 속도라면 금세 전문가가 될 거예요!`;
-        }
-      }
-      
-      // 난이도별 격려
-      const difficultyComments = {
-        easy: "🌱 하급 과정 도전 완료! 기초를 탄탄히 다져가고 있어요!",
-        medium: "🚀 중급 과정에 도전하는 용기! 숨은선까지 배우며 한 단계 성장했어요!",
-        hard: "🏆 상급 과정까지 도전하는 열정! 복잡한 도형도 두렵지 않은 실력자네요!"
-      };
-      
-      if (difficultyComments[session.difficulty]) {
-        return difficultyComments[session.difficulty];
-      }
-      
-      // 기본 격려 메시지
-      return "🎨 도면 그리기에 첫 발을 내딛은 용기! 이제 시작일 뿐이니 계속 도전해보세요!";
-      
-    } catch (error) {
-      console.error('개인화된 코멘트 생성 중 오류:', error);
-      return "🌟 도면 그리기 학습을 완료하셨네요! 수고하셨습니다!";
-    }
-  }
-
-  // 향상도 계산
-  calculateImprovement(session) {
-    try {
-      if (session.attempts.length < 2) return 0;
-      
-      const firstAttempt = session.attempts[0];
-      const lastAttempt = session.attempts[session.attempts.length - 1];
-      
-      const firstAvg = (firstAttempt.scores.top + firstAttempt.scores.front + firstAttempt.scores.side) / 3;
-      const lastAvg = (lastAttempt.scores.top + lastAttempt.scores.front + lastAttempt.scores.side) / 3;
-      
-      return Math.round(lastAvg - firstAvg);
-    } catch (error) {
-      console.error('향상도 계산 중 오류:', error);
-      return 0;
     }
   }
 
@@ -811,7 +558,7 @@ ${this.getTimeBasedAnalysis(session)}
         bestScore: bestOverall,
         finalScore: finalOverall,
         difficulty: session.difficulty,
-        improvement: this.calculateImprovement(session),
+        improvement: this.calculateSimpleImprovement(session),
         bestScores: { ...session.bestScores }
       };
     } catch (error) {
@@ -825,6 +572,24 @@ ${this.getTimeBasedAnalysis(session)}
         improvement: 0,
         bestScores: { top: 0, front: 0, side: 0 }
       };
+    }
+  }
+
+  // 간단한 향상도 계산 (배지 시스템용)
+  calculateSimpleImprovement(session) {
+    try {
+      if (session.attempts.length < 2) return 0;
+      
+      const firstAttempt = session.attempts[0];
+      const lastAttempt = session.attempts[session.attempts.length - 1];
+      
+      const firstAvg = (firstAttempt.scores.top + firstAttempt.scores.front + firstAttempt.scores.side) / 3;
+      const lastAvg = (lastAttempt.scores.top + lastAttempt.scores.front + lastAttempt.scores.side) / 3;
+      
+      return Math.round(lastAvg - firstAvg);
+    } catch (error) {
+      console.error('향상도 계산 중 오류:', error);
+      return 0;
     }
   }
 
