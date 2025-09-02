@@ -1,4 +1,4 @@
-/* style.css - 정투상도 학습 앱 스타일 (Feed Forward 강화 통합 버전) */
+/* style.css - 정투상도 학습 앱 스타일 (Netlify용) */
 
 body {
   font-family: 'Noto Sans KR', sans-serif;
@@ -150,11 +150,7 @@ canvas:hover {
   font-size: 1.2rem;
 }
 
-/* ================================================
-   AI 피드백 관련 스타일 (기존 + Feed Forward 강화)
-   ================================================ */
-
-/* 기본 AI 설정 */
+/* AI 피드백 관련 스타일 */
 .ai-settings {
   display: flex;
   align-items: center;
@@ -195,7 +191,6 @@ canvas:hover {
   cursor: not-allowed;
 }
 
-/* 기본 AI 피드백 영역 */
 .ai-feedback-area {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -253,268 +248,7 @@ canvas:hover {
   text-align: center;
 }
 
-/* ================================================
-   Feed Forward 강화 AI 피드백 스타일 (새로 추가)
-   ================================================ */
-
-/* 개선된 AI 피드백 컨테이너 */
-.ai-feedback-area.enhanced {
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
-  border: 2px solid #e3f2fd;
-  border-radius: 12px;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.1);
-  transition: all 0.3s ease;
-  max-height: none;
-}
-
-.ai-feedback-area.enhanced:hover {
-  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.15);
-}
-
-/* 피드백 헤더 */
-.feedback-header {
-  background: linear-gradient(135deg, #6C63FF 0%, #5A52E5 100%);
-  color: white;
-  padding: 12px 16px;
-  font-weight: bold;
-  text-align: center;
-  font-size: 1rem;
-  position: relative;
-}
-
-.feedback-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-}
-
-/* 피드백 내용 */
-.feedback-content {
-  padding: 20px;
-  line-height: 1.7;
-  font-size: 0.95rem;
-  color: #2d3748;
-  background: white;
-  position: relative;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.feedback-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-}
-
-/* Feed Forward 키워드 강조 */
-.feed-forward-highlight {
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
-  padding: 2px 4px;
-  border-radius: 4px;
-  position: relative;
-  display: inline-block;
-}
-
-.feed-forward-highlight::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  border-radius: 1px;
-  animation: highlight-pulse 2s infinite alternate;
-}
-
-@keyframes highlight-pulse {
-  0% { opacity: 0.6; transform: scaleX(0.8); }
-  100% { opacity: 1; transform: scaleX(1); }
-}
-
-/* 구체적 행동 지침 강조 */
-.action-highlight {
-  background: linear-gradient(45deg, #fff3cd, #ffeaa7);
-  border: 1px solid #ffd93d;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-weight: 600;
-  color: #856404;
-  font-size: 0.9rem;
-  box-shadow: 0 1px 3px rgba(255, 193, 7, 0.2);
-  transition: all 0.2s ease;
-}
-
-.action-highlight:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
-}
-
-/* 성취도 강조 */
-.achievement-highlight {
-  background: linear-gradient(45deg, #4CAF50, #81C784);
-  color: white;
-  border-radius: 12px;
-  padding: 3px 10px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  transition: all 0.2s ease;
-}
-
-.achievement-highlight:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(76, 175, 80, 0.4);
-}
-
-/* 피드백 액션 영역 */
-.feedback-actions {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-top: 1px solid #dee2e6;
-  padding: 15px 20px;
-  margin: 0;
-}
-
-/* 다음 단계 하이라이트 */
-.next-steps-highlight {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 12px 16px;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 0.9rem;
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-  position: relative;
-  overflow: hidden;
-  animation: pulse-glow 3s infinite;
-}
-
-.next-steps-highlight::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  animation: shine 3s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
-    transform: scale(1.02);
-  }
-}
-
-@keyframes shine {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
-}
-
-/* AI 팁 영역 개선 */
-.ai-feedback-area.enhanced .ai-tips {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border: 1px solid #90caf9;
-  border-radius: 0 0 10px 10px;
-  padding: 12px 16px;
-  margin: 0;
-  font-size: 0.85rem;
-  color: #1565c0;
-  text-align: center;
-  position: relative;
-}
-
-.ai-feedback-area.enhanced .ai-tips::before {
-  content: '🎯';
-  font-size: 1.1rem;
-  margin-right: 6px;
-  animation: rotate 4s infinite linear;
-}
-
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 로딩 상태 개선 */
-.ai-feedback-area.enhanced.loading {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
-  color: #6c757d;
-  font-style: italic;
-  position: relative;
-}
-
-.ai-feedback-area.enhanced.loading::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-  animation: loading-shimmer 2s infinite;
-}
-
-@keyframes loading-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* 향상된 로딩 스피너 */
-.ai-feedback-area.enhanced .loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #f3f4f6;
-  border-top: 3px solid #6C63FF;
-  border-radius: 50%;
-  animation: enhanced-spin 1s linear infinite;
-  margin-right: 12px;
-  box-shadow: 0 2px 4px rgba(108, 99, 255, 0.2);
-}
-
-@keyframes enhanced-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 에러 상태 개선 */
-.ai-feedback-area.enhanced.error {
-  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
-  border: 2px solid #fc8181;
-}
-
-.ai-feedback-area.enhanced.error .feedback-header {
-  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-}
-
-/* ================================================
-   학습 결과 분석 페이지 스타일 (기존)
-   ================================================ */
-
+/* 학습 결과 분석 페이지 스타일 */
 .learning-stats {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -627,7 +361,7 @@ canvas:hover {
   background-color: #5a6268;
 }
 
-/* AI 학습 분석 관련 스타일 (기존) */
+/* AI 학습 분석 관련 스타일 */
 .ai-pattern-analysis {
   transition: all 0.3s ease;
   overflow-wrap: break-word;
@@ -706,7 +440,7 @@ canvas:hover {
   line-height: 1.4;
 }
 
-/* 도면 이미지 미리보기 스타일 (기존) */
+/* 도면 이미지 미리보기 스타일 */
 .drawing-preview {
   width: 80px !important;
   height: 80px !important;
@@ -723,12 +457,8 @@ canvas:hover {
   margin: 6px auto 6px auto !important;
 }
 
-/* ================================================
-   반응형 디자인
-   ================================================ */
-
+/* 반응형 지원 */
 @media (max-width: 768px) {
-  /* 기존 반응형 스타일 */
   .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px;
@@ -753,302 +483,10 @@ canvas:hover {
   .ai-analysis-content h4 {
     font-size: 0.9rem;
   }
-  
-  /* Feed Forward 강화 반응형 */
-  .feedback-content {
-    padding: 15px;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    max-height: 350px;
-  }
-  
-  .feedback-header {
-    font-size: 0.9rem;
-    padding: 10px 12px;
-  }
-  
-  .next-steps-highlight {
-    font-size: 0.85rem;
-    padding: 10px 12px;
-  }
-  
-  .feed-forward-highlight {
-    font-size: inherit;
-  }
-  
-  .action-highlight {
-    padding: 2px 6px;
-    font-size: 0.85rem;
-  }
-  
-  .achievement-highlight {
-    padding: 2px 8px;
-    font-size: 0.85rem;
-  }
 }
 
 @media (max-width: 480px) {
-  /* 기존 반응형 스타일 */
   .stats-grid {
     grid-template-columns: 1fr !important;
-  }
-  
-  /* Feed Forward 강화 반응형 */
-  .ai-feedback-area.enhanced {
-    border-radius: 8px;
-  }
-  
-  .feedback-content {
-    padding: 12px;
-    font-size: 0.85rem;
-    max-height: 300px;
-  }
-  
-  .feedback-actions {
-    padding: 12px 15px;
-  }
-  
-  .next-steps-highlight {
-    font-size: 0.8rem;
-    padding: 8px 12px;
-  }
-}
-
-/* ================================================
-   접근성 및 고급 기능
-   ================================================ */
-
-/* 접근성 개선 */
-.feed-forward-highlight:focus,
-.action-highlight:focus,
-.achievement-highlight:focus,
-.next-steps-highlight:focus {
-  outline: 3px solid #6C63FF;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* 고대비 모드 지원 */
-@media (prefers-contrast: high) {
-  .ai-feedback-area.enhanced {
-    border: 3px solid #000;
-    background: #fff;
-  }
-  
-  .feedback-header {
-    background: #000;
-    color: #fff;
-  }
-  
-  .feed-forward-highlight {
-    background: #000;
-    color: #fff;
-    -webkit-text-fill-color: #fff;
-  }
-  
-  .action-highlight {
-    background: #ffff00;
-    color: #000;
-    border: 2px solid #000;
-  }
-  
-  .achievement-highlight {
-    background: #008000;
-    color: #fff;
-  }
-}
-
-/* 다크 모드 지원 */
-@media (prefers-color-scheme: dark) {
-  .ai-feedback-area.enhanced {
-    background: linear-gradient(135deg, #1a1b23 0%, #2d3748 100%);
-    border-color: #4a5568;
-    color: #e2e8f0;
-  }
-  
-  .feedback-content {
-    background: #2d3748;
-    color: #e2e8f0;
-  }
-  
-  .feedback-actions {
-    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-  }
-  
-  .ai-feedback-area.enhanced .ai-tips {
-    background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);
-    color: #e6fffa;
-  }
-}
-
-/* 사용자 지정 스크롤바 */
-.feedback-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.feedback-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.feedback-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #6C63FF, #5A52E5);
-  border-radius: 4px;
-}
-
-.feedback-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #5A52E5, #4C46D6);
-}
-
-/* 인쇄 시 스타일 */
-@media print {
-  .ai-feedback-area.enhanced {
-    background: white !important;
-    border: 2px solid #333 !important;
-    box-shadow: none !important;
-    break-inside: avoid;
-  }
-  
-  .feedback-header {
-    background: #6C63FF !important;
-    color: white !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
-  .feed-forward-highlight,
-  .action-highlight,
-  .achievement-highlight {
-    background: #f0f0f0 !important;
-    color: #333 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    font-weight: bold;
-  }
-  
-  .next-steps-highlight {
-    background: #e0e0e0 !important;
-    color: #333 !important;
-    border: 2px solid #333 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
-  /* 애니메이션 비활성화 */
-  * {
-    animation-duration: 0s !important;
-    transition-duration: 0s !important;
-  }
-}
-
-/* 성능 최적화 */
-.ai-feedback-area.enhanced *,
-.ai-feedback-area.enhanced *::before,
-.ai-feedback-area.enhanced *::after {
-  box-sizing: border-box;
-}
-
-.ai-feedback-area.enhanced {
-  contain: layout style paint;
-  will-change: transform;
-}
-
-/* ================================================
-   배지 시스템 스타일 (기존)
-   ================================================ */
-
-/* 배지 컬렉션 스타일 */
-.badge-collection {
-  margin: 20px 0;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  border: 1px solid #e9ecef;
-}
-
-.badge-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-top: 15px;
-}
-
-.badge-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 15px 10px;
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #e0e0e0;
-  transition: all 0.3s ease;
-}
-
-.badge-card.achieved {
-  border-color: #ffd700;
-  background: linear-gradient(135deg, #fff9e6, #ffffff);
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-}
-
-.badge-card.locked {
-  opacity: 0.6;
-  background: #f5f5f5;
-}
-
-.badge-card-icon {
-  font-size: 2.2rem;
-  margin-bottom: 8px;
-}
-
-.badge-card.locked .badge-card-icon {
-  filter: grayscale(100%) opacity(0.5);
-}
-
-.badge-info h5 {
-  margin: 0 0 5px 0;
-  font-size: 0.95rem;
-  color: #333;
-  font-weight: 600;
-}
-
-.badge-status {
-  font-size: 0.8rem;
-  color: #666;
-  line-height: 1.3;
-}
-
-.badge-card.achieved .badge-status {
-  color: #d4af37;
-  font-weight: 600;
-}
-
-@media (max-width: 768px) {
-  .badge-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  
-  .badge-card {
-    padding: 12px 8px;
-  }
-  
-  .badge-card-icon {
-    font-size: 1.8rem;
-    margin-bottom: 6px;
-  }
-  
-  .badge-info h5 {
-    font-size: 0.85rem;
-  }
-  
-  .badge-status {
-    font-size: 0.75rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .badge-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
